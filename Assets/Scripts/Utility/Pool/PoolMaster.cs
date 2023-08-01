@@ -71,9 +71,9 @@ namespace YellowOrphan.Utility
             for (int i = 0; i < _pools.Count; i++)
             {
                 Pool pool = _pools[i];
-                if (PrefabUtility.GetPrefabInstanceHandle(pool.Prefab) != PrefabUtility.GetPrefabInstanceHandle(obj))
-                    continue;
-                return pool;
+                // if (PrefabUtility.GetPrefabInstanceHandle(pool.Prefab) != PrefabUtility.GetPrefabInstanceHandle(obj))
+                    // continue;
+                // return pool;
             }
 
             return CreateNewPool(obj);

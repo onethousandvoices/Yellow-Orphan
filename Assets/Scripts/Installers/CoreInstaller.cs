@@ -10,7 +10,6 @@ namespace YellowOrphan.Installers
         {
             Container.BindInterfacesTo<GameController>().AsSingle();
             Container.BindInterfacesTo<TimeTickablesController>().AsSingle();
-            
             Container.BindInterfacesTo<DebugConsoleController>().AsSingle();
 
             Container.BindInterfacesTo<CameraController>().AsSingle();
