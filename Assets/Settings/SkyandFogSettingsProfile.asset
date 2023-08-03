@@ -45,7 +45,7 @@ MonoBehaviour:
     m_Value: 0
   maximumHeight:
     m_OverrideState: 1
-    m_Value: 10.37
+    m_Value: 15
   meanFreePath:
     m_OverrideState: 1
     m_Value: 4
@@ -57,7 +57,7 @@ MonoBehaviour:
     m_Value: {r: 0.25311497, g: 0.3690688, b: 0.509434, a: 1}
   globalLightProbeDimmer:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 0.384
   depthExtent:
     m_OverrideState: 1
     m_Value: 10
