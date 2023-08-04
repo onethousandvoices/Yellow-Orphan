@@ -253,8 +253,8 @@ Material:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _BaseColorMap_MipInfo: {r: 0, g: 0, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _Color_cover: {r: 0.6132076, g: 0.31624538, b: 0.31624538, a: 0}
-    - _Color_cover_details: {r: 1, g: 1, b: 1, a: 0}
+    - _Color_cover: {r: 0.559, g: 0.41254202, b: 0.41254202, a: 0}
+    - _Color_cover_details: {r: 0.7924528, g: 0.6628693, b: 0.6628693, a: 0}
     - _Color_pages: {r: 0.7075472, g: 0.6554454, b: 0.4716981, a: 0}
     - _DiffusionProfileAsset: {r: 0, g: 0, b: 0, a: 0}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
