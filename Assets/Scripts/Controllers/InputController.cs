@@ -25,7 +25,8 @@ namespace YellowOrphan.Player
         BlockCamera = 8,
         BlockSprint = 16,
         BlockMove = 32,
-        ShowCursor = 64
+        BlockLook = 64,
+        ShowCursor = 128
     }
 
     public class InputController : IInitializable, ITickable, IFixedTickable, IPlayerState, IDisposable
@@ -41,6 +42,7 @@ namespace YellowOrphan.Player
         private Vector2 _speedBlend;
         private Vector2 _sprintBlend;
         private Vector2 _move;
+        private Vector2 _look;
         private Vector2 _preJumpAcceleration;
 
         private bool _sprint;
@@ -70,7 +72,7 @@ namespace YellowOrphan.Player
         private static readonly int _animGrounded = Animator.StringToHash("Grounded");
         private static readonly int _animJump = Animator.StringToHash("Jump");
         private static readonly int _animFreeFall = Animator.StringToHash("FreeFall");
-        
+
         public event Action InputStateChanged;
         public event Action MoveStateChanged;
 
@@ -85,11 +87,11 @@ namespace YellowOrphan.Player
 
             _jumpTimeoutDelta = _jumpTimeout;
             _fallTimeoutDelta = _fallTimeout;
-            
+
             _boxCollider = _view.GetComponent<BoxCollider>();
             _playerHeight = _boxCollider.size.y;
             // _animator = _view.Animator;
-            
+
             BindInputs();
         }
 
@@ -100,6 +102,7 @@ namespace YellowOrphan.Player
         {
             CheckCursor();
             ReadInput();
+            Look();
         }
 
         public void FixedTick()
@@ -113,13 +116,13 @@ namespace YellowOrphan.Player
         {
             _inputMap = new InputMap();
             _inputMap.Enable();
-            
+
             _inputMap.Player.Jump.performed += OnJumpPerformed;
             _inputMap.Player.LMB.started += OnLMBStarted;
             _inputMap.Player.LMB.canceled += OnLMBCanceled;
             _inputMap.Player.RMB.started += OnRMBStarted;
             _inputMap.Player.RMB.canceled += OnRMBCanceled;
-            
+
             _inputMap.Player.Console.performed += _ => _consoleHandler.ShowConsole();
             _inputMap.Player.ReturnButton.performed += _ => _consoleHandler.OnReturn();
             _inputMap.Player.ArrowUp.performed += _ => _consoleHandler.OnUpArrow();
@@ -152,12 +155,17 @@ namespace YellowOrphan.Player
             _move = InputState.HasFlagOptimized(InputState.BlockMove)
                         ? Vector2.zero
                         : _inputMap.Player.Move.ReadValue<Vector2>();
+
+            _look = InputState.HasFlagOptimized(InputState.BlockLook)
+                        ? Vector2.zero
+                        : _inputMap.Player.Look.ReadValue<Vector2>();
+            
             CheckSprint();
         }
 
         private void OnJumpPerformed(InputAction.CallbackContext obj)
         {
-            if (/*!_jumpPossible || */!_isGrounded || _jumpTimeoutDelta > 0f || InputState.HasFlagOptimized(InputState.BlockJump))
+            if ( /*!_jumpPossible || */!_isGrounded || _jumpTimeoutDelta > 0f || InputState.HasFlagOptimized(InputState.BlockJump))
                 return;
             _view.Rb.velocity = new Vector3(_view.Rb.velocity.x, _view.JumpHeight, _view.Rb.velocity.z);
             _airControl = _move.sqrMagnitude < 0.001f;
@@ -168,7 +176,7 @@ namespace YellowOrphan.Player
         private void CheckSprint()
         {
             bool isSprinting = _inputMap.Player.Sprint.IsPressed();
-            
+
             if (InputState.HasFlagOptimized(InputState.BlockSprint))
                 isSprinting = false;
 
@@ -177,7 +185,7 @@ namespace YellowOrphan.Player
                 _sprint = false;
                 return;
             }
-            
+
             _sprint = true;
         }
 
@@ -191,7 +199,7 @@ namespace YellowOrphan.Player
                 // _animator.SetBool(_animFreeFall, false);
 
                 // if (_jump && _jumpTimeoutDelta <= 0f)
-                    // _animator.SetBool(_animJump, true);
+                // _animator.SetBool(_animJump, true);
 
                 if (_jumpTimeoutDelta >= 0f)
                     _jumpTimeoutDelta -= Time.deltaTime;
@@ -214,14 +222,14 @@ namespace YellowOrphan.Player
             _isGrounded = Physics.CheckSphere(spherePosition, _groundCheckSphereRadius, _view.GroundLayers, QueryTriggerInteraction.Ignore);
 
             _view.SetGroundCheckSphereParams(spherePosition, _groundCheckSphereRadius);
-            
+
             switch (_isGrounded)
             {
                 case true:
                     MoveState = MoveState.Idle;
                     _boxCollider.material = _move.sqrMagnitude == 0
-                                                    ? _view.FrictionMaterial
-                                                    : _view.SlipperyMaterial;
+                                                ? _view.FrictionMaterial
+                                                : _view.SlipperyMaterial;
 
                     if (_fallStartHeight > 0)
                     {
@@ -277,15 +285,15 @@ namespace YellowOrphan.Player
             float modifier = _move.sqrMagnitude > 0 ? _speedUpChangeRate : _slowDownChangeRate;
 
             CurrentSpeed = Mathf.Lerp(rbSpeed, targetSpeed, Time.fixedDeltaTime * modifier);
-            
+
             Vector3 inputDirection = new Vector3(_move.x, 0.0f, _move.y).normalized;
 
             if (!_isGrounded)
                 CurrentSpeed *= _view.InAirVelocityReduction;
-            
+
             Vector3 currentVelocity = _view.Rb.velocity;
             inputDirection *= CurrentSpeed;
-            
+
             Vector3 velocityChange = inputDirection - currentVelocity;
             velocityChange = new Vector3(velocityChange.x, 0f, velocityChange.z);
             velocityChange = AdjustSlopeVelocity(velocityChange);
@@ -296,9 +304,9 @@ namespace YellowOrphan.Player
             else
                 _view.Rb.velocity = new Vector3(_preJumpAcceleration.x, _view.Rb.velocity.y, _preJumpAcceleration.y);
 
-            if (inputDirection.sqrMagnitude > 0 && _isGrounded) 
+            if (inputDirection.sqrMagnitude > 0 && _isGrounded)
                 _view.transform.rotation = Quaternion.Slerp(_view.transform.rotation, Quaternion.LookRotation(velocityChange), Time.fixedDeltaTime * _turnSpeed);
-            
+
             // _sprintBlend = new Vector2(0f, _sprint ? 1 : 0);
             // _speedBlend = Vector3.Lerp(_speedBlend, _move + _sprintBlend, Time.fixedDeltaTime * modifier * 5f);
 
@@ -315,6 +323,29 @@ namespace YellowOrphan.Player
             Vector3 adjustedVelocity = slopeRotation * velocity;
 
             return adjustedVelocity.y < 0 ? adjustedVelocity : velocity;
+        }
+
+        private void Look()
+        {
+            if (_look.sqrMagnitude < 0.1f)
+                return;
+            
+            _view.HeadTarget.transform.eulerAngles += new Vector3(_look.y, _look.x, 0f);
+            
+            Vector3 angles = _view.HeadTarget.transform.eulerAngles;
+            angles.x = angles.x > 180 ? angles.x - 360 : angles.x;
+            angles.x = Mathf.Clamp(angles.x, _view.LookRange.x, _view.LookRange.y);
+
+            _view.HeadTarget.transform.eulerAngles = angles;
+        }
+        
+        private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
+        {
+            if (lfAngle < -360f)
+                lfAngle += 360f;
+            if (lfAngle > 360f)
+                lfAngle -= 360f;
+            return Mathf.Clamp(lfAngle, lfMin, lfMax);
         }
 
         public void AddState(params InputState[] newState)
