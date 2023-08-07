@@ -15,7 +15,7 @@ namespace YellowOrphan.Controllers
         [Inject] private DebugConsoleView _view;
         [Inject] private IPlayerState _playerState;
 
-        private DebugCommandBase[] _commands;
+        private List<DebugCommandBase> _commands;
         private readonly List<string> _previousCommands = new List<string>();
         private int _commandsPointer;
 
@@ -26,7 +26,7 @@ namespace YellowOrphan.Controllers
             DebugCommand<int> setFps = new DebugCommand<int>("fps_", "Set fps (0 - uncapped)", "fps_<value>", FrameRateChange);
             DebugCommand<float> setTimeScale = new DebugCommand<float>("time_", "Set time scale 0 - 100", "time_<value>", TimeScaleChange);
 
-            _commands = new DebugCommandBase[]
+            _commands = new List<DebugCommandBase>
             {
                 help,
                 testException,
@@ -114,10 +114,7 @@ namespace YellowOrphan.Controllers
         public void ShowConsole()
         {
             _view.ResetInput();
-            if (_view.UpdateConsoleState())
-                _playerState.AddAllExcept(InputState.None);
-            else
-                _playerState.RemoveAllExcept(InputState.None);
+            _playerState.InputBlocked = _view.UpdateConsoleState();
         }
 
         public void SubscribeToLog()
@@ -145,6 +142,9 @@ namespace YellowOrphan.Controllers
             }
             _view.SetInput(_previousCommands[_commandsPointer]);
         }
+
+        public void AddCommand(DebugCommandBase commandBase)
+            => _commands.Add(commandBase);
     }
 
     public interface IConsoleHandler
@@ -153,6 +153,7 @@ namespace YellowOrphan.Controllers
         public void SubscribeToLog();
         public void OnReturn();
         public void OnUpArrow();
+        public void AddCommand(DebugCommandBase commandBase);
     }
 
     public abstract class DebugCommandBase

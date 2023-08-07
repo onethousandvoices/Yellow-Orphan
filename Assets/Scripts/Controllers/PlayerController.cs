@@ -1,43 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Views;
 using YellowOrphan.Controllers;
-using YellowOrphan.Utility;
 using Zenject;
 
 namespace YellowOrphan.Player
 {
-    public enum MoveState : byte
+    public class PlayerController : IInitializable, ITickable, IFixedTickable, IPlayerState, IDisposable
     {
-        Idle,
-        Run,
-        Sprint,
-        Jump
-    }
-
-    [Flags]
-    public enum InputState : byte
-    {
-        None = 1,
-        BlockJump = 4,
-        BlockCamera = 8,
-        BlockSprint = 16,
-        BlockMove = 32,
-        BlockLook = 64,
-        ShowCursor = 128
-    }
-
-    public class InputController : IInitializable, ITickable, IFixedTickable, IPlayerState, IDisposable
-    {
+        [Inject] private MonoInstance _mono;
         [Inject] private PlayerView _view;
+        [Inject] private IPlayerStatsUI _playerStatsUI;
         [Inject] private IConsoleHandler _consoleHandler;
-        [Inject] private List<IRMBListener> _rmbListeners;
-        [Inject] private List<ILMBListener> _lmbListeners;
 
+        private Animator _animator;
+        private PlayerHook _playerHook;
         private InputMap _inputMap;
-        // private Animator _animator;
         private BoxCollider _boxCollider;
         private Vector2 _speedBlend;
         private Vector2 _sprintBlend;
@@ -46,16 +25,13 @@ namespace YellowOrphan.Player
         private Vector2 _preJumpAcceleration;
 
         private bool _sprint;
+        private bool _staminaWasZero;
+        private bool _staminaSpendable = true;
         private bool _airControl;
-        private bool _isLockCameraPosition;
         private bool _isGrounded = true;
 
-        private float _relativeSpeed;
-        private float _rotationVelocity;
         private float _jumpTimeoutDelta;
         private float _fallTimeoutDelta;
-        private float _staminaJumpCost;
-        private float _staminaSprintCost;
         private float _fallStartHeight;
         private float _playerHeight;
 
@@ -73,25 +49,31 @@ namespace YellowOrphan.Player
         private static readonly int _animJump = Animator.StringToHash("Jump");
         private static readonly int _animFreeFall = Animator.StringToHash("FreeFall");
 
-        public event Action InputStateChanged;
-        public event Action MoveStateChanged;
-
-        public MoveState MoveState { get; private set; }
-        public InputState InputState { get; private set; }
-
         public float CurrentSpeed { get; private set; }
+        public float CurrentStamina { get; private set; }
+        public bool InputBlocked { get; set; }
+        public bool IsAiming { get; private set; }
+        public bool IsHooked { get; private set; }
 
         public void Initialize()
         {
-            MoveState = MoveState.Idle;
-
             _jumpTimeoutDelta = _jumpTimeout;
             _fallTimeoutDelta = _fallTimeout;
 
+            CurrentStamina = _view.MaxStamina;
+
             _boxCollider = _view.GetComponent<BoxCollider>();
             _playerHeight = _boxCollider.size.y;
-            // _animator = _view.Animator;
+            _animator = _view.Animator;
 
+            _playerHook = new PlayerHook(_view.Rb, _view.Joint);
+            
+            _consoleHandler.AddCommand(new DebugCommand("hookStop", "Hook cancel", "hookStop", () =>
+            {
+                IsHooked = false;
+                _playerHook.HookStop();
+            }));
+            
             BindInputs();
         }
 
@@ -100,13 +82,13 @@ namespace YellowOrphan.Player
 
         public void Tick()
         {
-            CheckCursor();
             ReadInput();
             Look();
         }
 
         public void FixedTick()
         {
+            NormalizeRotation();
             JumpAndGravity();
             GroundedCheck();
             Movement();
@@ -129,43 +111,62 @@ namespace YellowOrphan.Player
         }
 
         private void OnRMBStarted(InputAction.CallbackContext obj)
-            => _rmbListeners.ForEach(x => x.OnRMBStarted(obj));
+        {
+            IsAiming = true;
+        }
 
         private void OnRMBCanceled(InputAction.CallbackContext obj)
-            => _rmbListeners.ForEach(x => x.OnRMBCanceled(obj));
+        {
+            IsAiming = false;
+        }
 
         private void OnLMBStarted(InputAction.CallbackContext obj)
-            => _lmbListeners.ForEach(x => x.OnLMBStarted(obj));
+        {
+            if (!IsAiming)
+                return;
+            IsHooked = true;
+            
+            Physics.Raycast(_view.RayStart.position, _view.RayStart.forward * _view.HookRange, out RaycastHit hit);
+            if (hit.rigidbody == null)
+                return;
+            
+            _playerHook.TryHook(_view.transform.position - hit.point, hit.rigidbody);
+        }
 
         private void OnLMBCanceled(InputAction.CallbackContext obj)
-            => _lmbListeners.ForEach(x => x.OnLMBCanceled(obj));
-
-        private void CheckCursor()
         {
-            if (InputState.HasFlagOptimized(InputState.ShowCursor))
+            // IsHooked = false;
+            // _playerHook.HookStop();
+        }
+
+        private void NormalizeRotation()
+        {
+            if (IsHooked)
+                return;
+            if (_view.transform.eulerAngles.magnitude < 0.1f)
             {
-                Cursor.lockState = CursorLockMode.Confined;
+                _view.transform.rotation = Quaternion.identity;
+                _view.Rb.constraints = RigidbodyConstraints.FreezeRotation;
                 return;
             }
-            Cursor.lockState = CursorLockMode.Locked;
+            _view.transform.eulerAngles = 
+                Vector3.Lerp(_view.transform.eulerAngles, new Vector3(0f, _view.transform.eulerAngles.y, 0f), Time.deltaTime * 10f);
         }
 
         private void ReadInput()
         {
-            _move = InputState.HasFlagOptimized(InputState.BlockMove)
-                        ? Vector2.zero
-                        : _inputMap.Player.Move.ReadValue<Vector2>();
-
-            _look = InputState.HasFlagOptimized(InputState.BlockLook)
-                        ? Vector2.zero
-                        : _inputMap.Player.Look.ReadValue<Vector2>();
+            if (InputBlocked)
+                return;
             
+            _move = _inputMap.Player.Move.ReadValue<Vector2>();
+            _look = _inputMap.Player.Look.ReadValue<Vector2>();
+
             CheckSprint();
         }
 
         private void OnJumpPerformed(InputAction.CallbackContext obj)
         {
-            if ( /*!_jumpPossible || */!_isGrounded || _jumpTimeoutDelta > 0f || InputState.HasFlagOptimized(InputState.BlockJump))
+            if (!_isGrounded || _jumpTimeoutDelta > 0f)
                 return;
             _view.Rb.velocity = new Vector3(_view.Rb.velocity.x, _view.JumpHeight, _view.Rb.velocity.z);
             _airControl = _move.sqrMagnitude < 0.001f;
@@ -177,16 +178,37 @@ namespace YellowOrphan.Player
         {
             bool isSprinting = _inputMap.Player.Sprint.IsPressed();
 
-            if (InputState.HasFlagOptimized(InputState.BlockSprint))
-                isSprinting = false;
-
-            if (!isSprinting)
+            if (!isSprinting || !_staminaSpendable)
             {
+                SpendStamina(_view.StaminaRecovery * Time.deltaTime);
                 _sprint = false;
                 return;
             }
 
+            SpendStamina(-_view.StaminaSprintCost * Time.deltaTime);
             _sprint = true;
+        }
+
+        private void SpendStamina(float cost)
+        {
+            CurrentStamina += cost;
+
+            if (CurrentStamina >= _view.MaxStamina)
+                CurrentStamina = _view.MaxStamina;
+            else if (CurrentStamina <= 0)
+            {
+                CurrentStamina = 0;
+                _staminaWasZero = true;
+                _staminaSpendable = false;
+            }
+
+            if (_staminaWasZero && CurrentStamina / _view.MaxStamina >= 0.3f)
+            {
+                _staminaWasZero = false;
+                _staminaSpendable = true;
+            }
+
+            _playerStatsUI.SetStamina(CurrentStamina, _view.MaxStamina);
         }
 
         private void JumpAndGravity()
@@ -226,7 +248,6 @@ namespace YellowOrphan.Player
             switch (_isGrounded)
             {
                 case true:
-                    MoveState = MoveState.Idle;
                     _boxCollider.material = _move.sqrMagnitude == 0
                                                 ? _view.FrictionMaterial
                                                 : _view.SlipperyMaterial;
@@ -243,43 +264,20 @@ namespace YellowOrphan.Player
                     }
                     break;
                 case false:
-                    MoveState = MoveState.Jump;
                     _boxCollider.material = _view.SlipperyMaterial;
                     if (_fallStartHeight <= 0)
                         _fallStartHeight = _view.transform.position.y;
                     break;
             }
             // _animator.SetBool(_animGrounded, _isGrounded);
-            MoveStateChanged?.Invoke();
         }
 
         private void Movement()
         {
-            float targetSpeed;
-            MoveState pendingState;
-
-            if (_sprint)
-            {
-                targetSpeed = _view.SprintSpeed;
-                pendingState = MoveState.Sprint;
-            }
-            else
-            {
-                targetSpeed = _view.Speed;
-                pendingState = MoveState.Run;
-            }
+            float targetSpeed = _sprint ? _view.SprintSpeed : _view.WalkSpeed;
 
             if (_move == Vector2.zero)
-            {
                 targetSpeed = 0f;
-                pendingState = MoveState.Idle;
-            }
-
-            if (_isGrounded && MoveState != pendingState)
-            {
-                MoveState = pendingState;
-                MoveStateChanged?.Invoke();
-            }
 
             float rbSpeed = new Vector3(_view.Rb.velocity.x, 0f, _view.Rb.velocity.z).magnitude;
             float modifier = _move.sqrMagnitude > 0 ? _speedUpChangeRate : _slowDownChangeRate;
@@ -327,93 +325,30 @@ namespace YellowOrphan.Player
 
         private void Look()
         {
-            if (_look.sqrMagnitude < 0.1f)
+            if (_look.sqrMagnitude < 0.1f || !IsAiming)
                 return;
-            
-            _view.HeadTarget.transform.eulerAngles += new Vector3(_look.y, _look.x, 0f);
-            
-            Vector3 angles = _view.HeadTarget.transform.eulerAngles;
+
+            _view.HeadTarget.transform.localEulerAngles += new Vector3(_look.y, _look.x, 0f);
+
+            Vector3 angles = _view.HeadTarget.transform.localEulerAngles;
+
             angles.x = angles.x > 180 ? angles.x - 360 : angles.x;
-            angles.x = Mathf.Clamp(angles.x, _view.LookRange.x, _view.LookRange.y);
+            angles.x = Mathf.Clamp(angles.x, _view.LookRangeX.x, _view.LookRangeX.y);
 
-            _view.HeadTarget.transform.eulerAngles = angles;
-        }
-        
-        private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
-        {
-            if (lfAngle < -360f)
-                lfAngle += 360f;
-            if (lfAngle > 360f)
-                lfAngle -= 360f;
-            return Mathf.Clamp(lfAngle, lfMin, lfMax);
-        }
+            angles.y = angles.y > 180 ? angles.y - 360 : angles.y;
+            angles.y = Mathf.Clamp(angles.y, _view.LookRangeY.x, _view.LookRangeY.y);
 
-        public void AddState(params InputState[] newState)
-        {
-            foreach (InputState state in newState)
-                InputState |= state;
-            InputStateChanged?.Invoke();
-        }
-
-        public void RemoveState(params InputState[] removeState)
-        {
-            foreach (InputState state in removeState)
-                InputState &= ~state;
-            InputStateChanged?.Invoke();
-        }
-
-        public void AddAllExcept(InputState state)
-        {
-            Array states = Enum.GetValues(typeof(InputState));
-
-            foreach (InputState inputState in states)
-            {
-                if (inputState == state)
-                    continue;
-                InputState |= inputState;
-            }
-            InputStateChanged?.Invoke();
-        }
-
-        public void RemoveAllExcept(InputState state)
-        {
-            Array states = Enum.GetValues(typeof(InputState));
-
-            foreach (InputState inputState in states)
-            {
-                if (inputState == state)
-                    continue;
-                InputState &= ~inputState;
-            }
-            InputStateChanged?.Invoke();
+            _view.HeadTarget.transform.localEulerAngles = angles;
         }
     }
 
     public interface IPlayerState
     {
-        public event Action InputStateChanged;
-        public event Action MoveStateChanged;
-
-        public MoveState MoveState { get; }
-        public InputState InputState { get; }
-
         public float CurrentSpeed { get; }
+        public float CurrentStamina { get; }
 
-        public void AddState(params InputState[] newStates);
-        public void RemoveState(params InputState[] removeStates);
-        public void AddAllExcept(InputState state);
-        public void RemoveAllExcept(InputState state);
-    }
-
-    public interface IRMBListener
-    {
-        public void OnRMBStarted(InputAction.CallbackContext obj);
-        public void OnRMBCanceled(InputAction.CallbackContext obj);
-    }
-
-    public interface ILMBListener
-    {
-        public void OnLMBStarted(InputAction.CallbackContext obj);
-        public void OnLMBCanceled(InputAction.CallbackContext obj);
+        public bool InputBlocked { get; set; }
+        public bool IsAiming { get; }
+        public bool IsHooked { get; }
     }
 }

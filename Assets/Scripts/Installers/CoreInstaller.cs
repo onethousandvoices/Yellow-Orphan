@@ -1,4 +1,5 @@
-﻿using YellowOrphan.Controllers;
+﻿using UnityEngine;
+using YellowOrphan.Controllers;
 using YellowOrphan.Player;
 using Zenject;
 
@@ -12,8 +13,8 @@ namespace YellowOrphan.Installers
             Container.BindInterfacesTo<TimeTickablesController>().AsSingle();
             Container.BindInterfacesTo<DebugConsoleController>().AsSingle();
 
-            Container.BindInterfacesTo<CameraController>().AsSingle();
-            Container.BindInterfacesTo<InputController>().AsSingle();
+            Container.BindInterfacesTo<UIController>().AsSingle();
+            Container.BindInterfacesTo<PlayerController>().AsSingle();
         }
     }
 }
