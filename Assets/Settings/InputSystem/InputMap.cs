@@ -134,6 +134,24 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""HookDescend"",
+                    ""type"": ""Button"",
+                    ""id"": ""29f3feaa-c9b0-4820-8070-463d385bf275"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""HookClimb"",
+                    ""type"": ""Button"",
+                    ""id"": ""4517d745-8a49-4d3f-a154-06bd2474c96c"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -400,6 +418,28 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                     ""action"": ""PickButton"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f2bf982a-a7b5-4028-b686-ecd5c601f1ef"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""HookDescend"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9a1d6680-8e49-4823-8b59-0c7271811ce7"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""HookClimb"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -468,6 +508,8 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
         m_Player_LMB = m_Player.FindAction("LMB", throwIfNotFound: true);
         m_Player_RMB = m_Player.FindAction("RMB", throwIfNotFound: true);
         m_Player_PickButton = m_Player.FindAction("PickButton", throwIfNotFound: true);
+        m_Player_HookDescend = m_Player.FindAction("HookDescend", throwIfNotFound: true);
+        m_Player_HookClimb = m_Player.FindAction("HookClimb", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -539,6 +581,8 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_LMB;
     private readonly InputAction m_Player_RMB;
     private readonly InputAction m_Player_PickButton;
+    private readonly InputAction m_Player_HookDescend;
+    private readonly InputAction m_Player_HookClimb;
     public struct PlayerActions
     {
         private @InputMap m_Wrapper;
@@ -555,6 +599,8 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
         public InputAction @LMB => m_Wrapper.m_Player_LMB;
         public InputAction @RMB => m_Wrapper.m_Player_RMB;
         public InputAction @PickButton => m_Wrapper.m_Player_PickButton;
+        public InputAction @HookDescend => m_Wrapper.m_Player_HookDescend;
+        public InputAction @HookClimb => m_Wrapper.m_Player_HookClimb;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -600,6 +646,12 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                 @PickButton.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnPickButton;
                 @PickButton.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnPickButton;
                 @PickButton.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnPickButton;
+                @HookDescend.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnHookDescend;
+                @HookDescend.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnHookDescend;
+                @HookDescend.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnHookDescend;
+                @HookClimb.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnHookClimb;
+                @HookClimb.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnHookClimb;
+                @HookClimb.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnHookClimb;
             }
             m_Wrapper.m_PlayerActionsCallbackInterface = instance;
             if (instance != null)
@@ -640,6 +692,12 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                 @PickButton.started += instance.OnPickButton;
                 @PickButton.performed += instance.OnPickButton;
                 @PickButton.canceled += instance.OnPickButton;
+                @HookDescend.started += instance.OnHookDescend;
+                @HookDescend.performed += instance.OnHookDescend;
+                @HookDescend.canceled += instance.OnHookDescend;
+                @HookClimb.started += instance.OnHookClimb;
+                @HookClimb.performed += instance.OnHookClimb;
+                @HookClimb.canceled += instance.OnHookClimb;
             }
         }
     }
@@ -694,5 +752,7 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
         void OnLMB(InputAction.CallbackContext context);
         void OnRMB(InputAction.CallbackContext context);
         void OnPickButton(InputAction.CallbackContext context);
+        void OnHookDescend(InputAction.CallbackContext context);
+        void OnHookClimb(InputAction.CallbackContext context);
     }
 }

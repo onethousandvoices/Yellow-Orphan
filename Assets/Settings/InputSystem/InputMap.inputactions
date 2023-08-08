@@ -112,6 +112,24 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "HookDescend",
+                    "type": "Button",
+                    "id": "29f3feaa-c9b0-4820-8070-463d385bf275",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "HookClimb",
+                    "type": "Button",
+                    "id": "4517d745-8a49-4d3f-a154-06bd2474c96c",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -376,6 +394,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "PickButton",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f2bf982a-a7b5-4028-b686-ecd5c601f1ef",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "HookDescend",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9a1d6680-8e49-4823-8b59-0c7271811ce7",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "HookClimb",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

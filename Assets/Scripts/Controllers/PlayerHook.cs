@@ -4,68 +4,76 @@ namespace YellowOrphan.Controllers
 {
     public class PlayerHook
     {
+        private SpringJoint _joint;
         private readonly Rigidbody _rb;
-        private readonly ConfigurableJoint _joint;
-
-        private readonly JointDrive _xDrive;
-        private readonly JointDrive _yDrive;
-        private readonly JointDrive _zDrive;
-        private readonly JointDrive _angularXDrive;
-        private readonly JointDrive _angularYZDrive;
+        private readonly RigidbodyConstraints _rbConstraints;
         
         private readonly float _baseRbMass;
         private readonly float _baseRbDrag;
+        private readonly float _baseRbAngularDrag;
 
         private const float _hookedRbMass = 1f;
         private const float _hookedRbDrag = 1f;
+        private const float _hookedRbAngularDrag = 1f;
         
-        public PlayerHook(Rigidbody rb, ConfigurableJoint joint)
+        public PlayerHook(Rigidbody rb)
         {
             _rb = rb;
-            _joint = joint;
+            _rbConstraints = _rb.constraints;
 
             _baseRbMass = rb.mass;
             _baseRbDrag = rb.drag;
-
-            _xDrive = _joint.xDrive;
-            _yDrive = _joint.yDrive;
-            _zDrive = _joint.zDrive;
-            _angularXDrive = _joint.angularXDrive;
-            _angularYZDrive = _joint.angularYZDrive;
+            _baseRbAngularDrag = _rb.angularDrag;
             
             HookStop();
         }
 
-        public void TryHook(Vector3 target, Rigidbody body)
+        public void TryHook(Vector3 target)
         {
             _rb.mass = _hookedRbMass;
             _rb.drag = _hookedRbDrag;
-
+            _rb.angularDrag = _hookedRbAngularDrag;
             _rb.constraints = RigidbodyConstraints.None;
-
-            _joint.connectedBody = body;
+            
+            _joint = _rb.gameObject.AddComponent<SpringJoint>();
+            _joint.autoConfigureConnectedAnchor = false;
             _joint.connectedAnchor = target;
-            _joint.xDrive = _xDrive;
-            _joint.yDrive = _yDrive;
-            _joint.zDrive = _zDrive;
-            _joint.angularXDrive = _angularXDrive;
-            _joint.angularYZDrive = _angularYZDrive;
+            _joint.anchor = new Vector3(0f, 1.2f, 0f);
+
+            float distance = Vector3.Distance(_rb.transform.position, target);
+
+            _joint.maxDistance = distance * 0.8f;
+            _joint.minDistance = 0.1f;
+
+            _joint.spring = 4.5f;
+            _joint.damper = 7f;
+            _joint.massScale = 4.5f;
         }
 
         public void HookStop()
         {
             _rb.mass = _baseRbMass;
             _rb.drag = _baseRbDrag;
-
-            // _rb.constraints = RigidbodyConstraints.FreezeRotation;
+            _rb.angularDrag = _baseRbAngularDrag;
+            _rb.constraints = _rbConstraints;
             
-            _joint.connectedBody = null;
-            _joint.connectedAnchor = Vector3.zero;
-            _joint.xDrive = new JointDrive();
-            _joint.yDrive = new JointDrive();
-            _joint.zDrive = new JointDrive();
-            _joint.angularXDrive = new JointDrive();
-            _joint.angularYZDrive = new JointDrive();
+            Object.Destroy(_rb.gameObject.GetComponent<SpringJoint>());
+        }
+
+        public void Descend(float maxDistance, float speed = 1f)
+        {
+            if (_joint == null)
+                return;
+            _joint.maxDistance = 
+                Mathf.Lerp(_joint.maxDistance, maxDistance, Time.deltaTime * speed);
+        }
+
+        public void Climb(float speed = 1f)
+        {
+            if (_joint == null)
+                return;
+            _joint.maxDistance = 
+                Mathf.Lerp(_joint.maxDistance, _joint.minDistance, Time.deltaTime * speed);
         }
     }
 }
