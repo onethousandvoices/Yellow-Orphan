@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections;
+﻿using Controllers;
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Views;
@@ -8,7 +8,7 @@ using Zenject;
 
 namespace YellowOrphan.Player
 {
-    public class PlayerController : IInitializable, ITickable, IFixedTickable, ILateTickable, IPlayerState, IDisposable
+    public class PlayerController : IInitializable, ITickable, IFixedTickable, ILateTickable, IPlayerState, IPlayerMotion, IDisposable
     {
         [Inject] private MonoInstance _mono;
         [Inject] private PlayerView _view;
@@ -16,53 +16,43 @@ namespace YellowOrphan.Player
         [Inject] private IConsoleHandler _consoleHandler;
 
         private Animator _animator;
-        private PlayerHook _playerHook;
         private InputMap _inputMap;
-        private RaycastHit _slopeHit;
-        private SphereCollider _boxCollider;
-        private Coroutine _rotationNormalizeRoutine;
+        private RaycastHit _groundHit;
+        private SphereCollider _sphereCollider;
+        private PlayerPhysics _playerPhysics;
+        private PlayerTracks _playerTracks;
 
-        private Vector3 _hookPoint;
-        private Vector3 _velocityChange;
-        
-        private Vector2 _speedBlend;
-        private Vector2 _sprintBlend;
         private Vector2 _move;
         private Vector2 _look;
-        private Vector2 _preJumpAcceleration;
 
         private bool _sprint;
         private bool _staminaWasZero;
         private bool _staminaSpendable = true;
         private bool _airControl;
-        private bool _isGrounded = true;
         private bool _isOnSlope;
         private bool _wasHooked;
-
+        
         private float _jumpTimeoutDelta;
         private float _fallTimeoutDelta;
         private float _fallStartHeight;
-        private float _playerHeight;
+        private float _slopeAngle;
 
-        private const float _speedUpChangeRate = 80f;
-        private const float _slowDownChangeRate = 30f;
+        private const float _speedUpChangeRate = 30f;
+        private const float _slowDownChangeRate = 20f;
         private const float _jumpTimeout = 0.01f;
         private const float _fallTimeout = 0.05f;
-        private const float _groundedOffset = -0.15f;
-        private const float _groundCheckSphereRadius = 0.3f;
-        private const float _turnSpeed = 10f;
 
-        private static readonly int _animSpeedX = Animator.StringToHash("SpeedX");
-        private static readonly int _animSpeedY = Animator.StringToHash("SpeedY");
-        private static readonly int _animGrounded = Animator.StringToHash("Grounded");
-        private static readonly int _animJump = Animator.StringToHash("Jump");
-        private static readonly int _animFreeFall = Animator.StringToHash("FreeFall");
+        private static readonly int _speedBlendHash = Animator.StringToHash("SpeedBlend");
 
         public float CurrentSpeed { get; private set; }
         public float CurrentStamina { get; private set; }
-        public bool InputBlocked { get; set; }
+        public bool IsGrounded { get; private set; } = true;
         public bool IsAiming { get; private set; }
         public bool IsHooked { get; private set; }
+        public bool InputBlocked { get; set; }
+        
+        public Vector3 InputDirection { get; private set; }
+        public float CurrentHorizontalSpeed { get; private set; }
 
         public void Initialize()
         {
@@ -71,12 +61,12 @@ namespace YellowOrphan.Player
 
             CurrentStamina = _view.MaxStamina;
 
-            _boxCollider = _view.GetComponent<SphereCollider>();
-            _playerHeight = _boxCollider.radius;
+            _sphereCollider = _view.GetComponent<SphereCollider>();
             _animator = _view.Animator;
 
-            _playerHook = new PlayerHook(_view.Rb);
-            
+            _playerPhysics = new PlayerPhysics(_view, this);
+            _playerTracks = new PlayerTracks(_view, this, this);
+
             BindInputs();
         }
 
@@ -87,20 +77,20 @@ namespace YellowOrphan.Player
         {
             ReadInput();
             JumpAndGravity();
-            SlopeCheck();
+            GroundCheck();
+            _playerTracks.AdjustLegs();
+            _playerTracks.RotateTracks();
         }
 
         public void FixedTick()
         {
-            GroundedCheck();
             Movement();
         }
-        
+
         public void LateTick()
         {
-            DrawLine();
+            _playerPhysics.DrawLine();
             Look();
-            AdjustLegs();
         }
 
         private void BindInputs()
@@ -127,71 +117,50 @@ namespace YellowOrphan.Player
 
         private void OnLMBStarted(InputAction.CallbackContext obj)
         {
-            if (!IsAiming)
+            if (!IsAiming || _playerPhysics.RotationNormalizing)
                 return;
-            
-            Physics.Raycast(_view.RayStart.position, _view.RayStart.forward * _view.HookRange, out RaycastHit hit);
+
+            Physics.Raycast(_view.HookRayStart.position, _view.HookRayStart.forward * _view.HookRange, out RaycastHit hit);
             if (hit.transform == null)
                 return;
-            
+
             IsHooked = true;
             _wasHooked = true;
             _airControl = true;
-            _hookPoint = hit.point;
-            _playerHook.TryHook(_hookPoint);
-            
-            if (_rotationNormalizeRoutine != null)
-                _mono.StopCoroutine(_rotationNormalizeRoutine);
+            _playerPhysics.TryHook(hit.point);
         }
 
         private void OnLMBCanceled(InputAction.CallbackContext obj)
         {
             if (!_wasHooked)
                 return;
-            
+
             IsHooked = false;
             _wasHooked = false;
             _airControl = false;
-            _hookPoint = Vector3.zero;
-            _playerHook.HookStop();
-            _rotationNormalizeRoutine ??= _mono.StartCoroutine(NormalizeRotation(0.6f));
-            _preJumpAcceleration = _view.Rb.velocity;
-        }
-
-        private IEnumerator NormalizeRotation(float time)
-        {
-            float t = 0f;
-            Quaternion startRot = _view.transform.rotation;
-            Quaternion target = Quaternion.Euler(new Vector3(0f, _view.transform.eulerAngles.y, 0f));
-            while (t < 1f)
-            {
-                _view.transform.rotation = Quaternion.Lerp(startRot, target, t * t);
-                t += Time.fixedDeltaTime / time;
-                yield return null;
-            }
-            _view.transform.rotation = target;
-            _rotationNormalizeRoutine = null;
+            _playerPhysics.HookStop();
+            _mono.StartCoroutine(_playerPhysics.NormalizeRotation(0.6f));
         }
 
         private void ReadInput()
         {
             if (InputBlocked)
                 return;
-            
+
             _move = _inputMap.Player.Move.ReadValue<Vector2>();
             _look = _inputMap.Player.Look.ReadValue<Vector2>();
             
             if (_inputMap.Player.HookClimb.IsPressed())
-                _playerHook.Climb(_view.HookClimbSpeed);
+                _playerPhysics.HookClimb(_view.HookClimbSpeed);
             else if (_inputMap.Player.HookDescend.IsPressed())
-                _playerHook.Descend(_view.HookRange, _view.HookDescendSpeed);
-            
+                _playerPhysics.HookDescend(_view.HookRange, _view.HookDescendSpeed);
+
             CheckSprint();
         }
-        
+
         private void CheckSprint()
         {
-            bool isSprinting = _inputMap.Player.Sprint.IsPressed();
+            bool isSprinting = _inputMap.Player.Sprint.IsPressed() && !IsHooked;
 
             if (!isSprinting || !_staminaSpendable)
             {
@@ -206,14 +175,11 @@ namespace YellowOrphan.Player
 
         private void OnJumpPerformed(InputAction.CallbackContext obj)
         {
-            if (!_isGrounded || IsHooked || _jumpTimeoutDelta > 0f)
+            if (!IsGrounded || IsHooked || _jumpTimeoutDelta > 0f)
                 return;
-            _view.Rb.velocity = new Vector3(_view.Rb.velocity.x, _view.JumpHeight, _view.Rb.velocity.z);
-            _airControl = _move.sqrMagnitude < 0.001f;
-            if (!_airControl)
-                _preJumpAcceleration = new Vector2(_view.Rb.velocity.x, _view.Rb.velocity.z);
+            _playerPhysics.Velocity = new Vector3(_playerPhysics.Velocity.x, _view.JumpHeight, _playerPhysics.Velocity.z);
         }
-        
+
         private void SpendStamina(float cost)
         {
             CurrentStamina += cost;
@@ -238,15 +204,9 @@ namespace YellowOrphan.Player
 
         private void JumpAndGravity()
         {
-            if (_isGrounded)
+            if (IsGrounded)
             {
                 _fallTimeoutDelta = _fallTimeout;
-
-                // _animator.SetBool(_animJump, false);
-                // _animator.SetBool(_animFreeFall, false);
-
-                // if (_jump && _jumpTimeoutDelta <= 0f)
-                // _animator.SetBool(_animJump, true);
 
                 if (_jumpTimeoutDelta >= 0f)
                     _jumpTimeoutDelta -= Time.deltaTime;
@@ -257,44 +217,7 @@ namespace YellowOrphan.Player
 
                 if (_fallTimeoutDelta >= 0f)
                     _fallTimeoutDelta -= Time.deltaTime;
-
-                // _animator.SetBool(_animFreeFall, true);
             }
-        }
-
-        private void GroundedCheck()
-        {
-            Vector3 playerPos = _view.transform.position;
-            Vector3 spherePosition = new Vector3(playerPos.x, playerPos.y - _groundedOffset, playerPos.z);
-            _isGrounded = Physics.CheckSphere(spherePosition, _groundCheckSphereRadius, _view.GroundLayers, QueryTriggerInteraction.Ignore);
-
-            _view.SetGroundCheckSphereParams(spherePosition, _groundCheckSphereRadius);
-
-            switch (_isGrounded)
-            {
-                case true when !IsHooked:
-                    _boxCollider.material = _move.sqrMagnitude == 0
-                                                ? _view.FrictionMaterial
-                                                : _view.SlipperyMaterial;
-
-                    if (_fallStartHeight > 0)
-                    {
-                        float fallHeight = Mathf.Abs(_view.transform.position.y - _fallStartHeight) / _playerHeight;
-                        if (fallHeight >= _playerHeight)
-                        {
-                            int damage = (int)fallHeight * _view.FallDamagePerHeight;
-                            Debug.Log($"{damage} fall height damage taken");
-                        }
-                        _fallStartHeight = 0f;
-                    }
-                    break;
-                case false:
-                    _boxCollider.material = _view.SlipperyMaterial;
-                    if (_fallStartHeight <= 0)
-                        _fallStartHeight = _view.transform.position.y;
-                    break;
-            }
-            // _animator.SetBool(_animGrounded, _isGrounded);
         }
 
         private void Movement()
@@ -304,45 +227,74 @@ namespace YellowOrphan.Player
             if (_move == Vector2.zero)
                 targetSpeed = 0f;
 
-            float rbSpeed = new Vector3(_view.Rb.velocity.x, 0f, _view.Rb.velocity.z).magnitude;
+            CurrentHorizontalSpeed = new Vector3(_playerPhysics.Velocity.x, 0f, _playerPhysics.Velocity.z).magnitude;
             float modifier = _move.sqrMagnitude > 0 ? _speedUpChangeRate : _slowDownChangeRate;
 
-            CurrentSpeed = Mathf.Lerp(rbSpeed, targetSpeed, Time.fixedDeltaTime * modifier);
+            CurrentSpeed = Mathf.Lerp(CurrentHorizontalSpeed, targetSpeed, Time.fixedDeltaTime * modifier);
 
-            Vector3 inputDirection = new Vector3(_move.x, 0.0f, _move.y).normalized;
+            InputDirection = new Vector3(_move.x, 0.0f, _move.y).normalized;
 
-            if (!_isGrounded)
-                CurrentSpeed *= _view.InAirVelocityReduction;
+            Vector3 inputDirectionModified = InputDirection * CurrentSpeed;
 
-            inputDirection *= CurrentSpeed;
-            
-            _velocityChange = inputDirection - _view.Rb.velocity;
-            _velocityChange = new Vector3(_velocityChange.x, 0f, _velocityChange.z);
-            // _velocityChange = AdjustSlopeVelocity(_velocityChange);
-            _velocityChange = Vector3.ClampMagnitude(_velocityChange, CurrentSpeed);
+            Vector3 velocityChange = inputDirectionModified - _playerPhysics.Velocity;
+            velocityChange = new Vector3(velocityChange.x, 0f, velocityChange.z);
+            velocityChange = Vector3.ClampMagnitude(velocityChange, CurrentSpeed);
 
-            if (_isGrounded || _airControl)
-                _view.Rb.AddForce(_velocityChange, ForceMode.Acceleration);
-            else if (!_isOnSlope)
-                _view.Rb.velocity = new Vector3(_preJumpAcceleration.x, _view.Rb.velocity.y, _preJumpAcceleration.y);
+            if (IsGrounded || _airControl)
+                _playerPhysics.AddForce(velocityChange, ForceMode.Acceleration);
 
-            if (inputDirection.sqrMagnitude > 0 && _isGrounded)
-                _view.transform.rotation = Quaternion.Slerp(_view.transform.rotation, Quaternion.LookRotation(_velocityChange), Time.fixedDeltaTime * _turnSpeed);
+            if (_isOnSlope && !IsHooked)
+                _playerPhysics.AddForce(-_groundHit.transform.up * (_slopeAngle >= _view.MaxSlopeAngle ? 3000f : 500f), ForceMode.Force);
 
-            // _sprintBlend = new Vector2(0f, _sprint ? 1 : 0);
-            // _speedBlend = Vector3.Lerp(_speedBlend, _move + _sprintBlend, Time.fixedDeltaTime * modifier * 5f);
+            if (InputDirection.magnitude > 0 && IsGrounded)
+                _view.transform.rotation = Quaternion.Slerp(_view.transform.rotation, Quaternion.LookRotation(velocityChange), Time.fixedDeltaTime * _view.TurnSpeed);
 
-            // _animator.SetFloat(_animSpeedX, _speedBlend.x);
-            // _animator.SetFloat(_animSpeedY, _speedBlend.y);
+            _animator.SetFloat(_speedBlendHash, _playerPhysics.Velocity.magnitude);
         }
 
-        private void SlopeCheck()
+        private void GroundCheck()
         {
             Vector3 rayStart = new Vector3(_view.transform.position.x, _view.transform.position.y + 0.3f, _view.transform.position.z);
-            Ray ray = new Ray(rayStart, Vector3.down);
-            if (!Physics.Raycast(ray, out _slopeHit, 2f))
-                return;
-            _isOnSlope = Math.Abs(Vector3.Angle(_view.transform.forward, _slopeHit.normal) - 90) > 0.1f;
+            Ray ray = new Ray(rayStart, -_view.transform.up);
+
+            Physics.Raycast(ray, out _groundHit, 5f);
+
+            if (_groundHit.transform != null)
+                _slopeAngle = Vector3.Angle(_view.transform.up, _groundHit.normal) - 90;
+
+            IsGrounded = _groundHit.transform != null && _groundHit.distance < 0.7f;
+            _isOnSlope = _groundHit.transform != null && IsGrounded && Mathf.Abs(_slopeAngle) > 0.1f;
+
+            _playerPhysics.SetGravity(!_isOnSlope);
+
+            switch (IsGrounded)
+            {
+                case true when !IsHooked:
+                    _playerPhysics.ResetDrag();
+                    _sphereCollider.material = _move.sqrMagnitude == 0
+                                                   ? _view.FrictionMaterial
+                                                   : _view.SlipperyMaterial;
+
+                    // if (_fallStartHeight > 0)
+                    // {
+                    //     float fallHeight = Mathf.Abs(_view.transform.position.y - _fallStartHeight) / _playerHeight;
+                    //     if (fallHeight >= _playerHeight)
+                    //     {
+                    //         int damage = (int)fallHeight * _view.FallDamagePerHeight;
+                    //         Debug.Log($"{damage} fall height damage taken");
+                    //     }
+                    //     _fallStartHeight = 0f;
+                    // }
+                    break;
+                case false:
+                    if (!IsHooked)
+                        _playerPhysics.SetDrag(_view.InAirDrag);
+                    _sphereCollider.material = _view.SlipperyMaterial;
+                    if (_fallStartHeight <= 0)
+                        _fallStartHeight = _view.transform.position.y;
+                    break;
+            }
+            // _animator.SetBool(_animGrounded, _isGrounded);
         }
 
         //todo obsolete?
@@ -354,7 +306,7 @@ namespace YellowOrphan.Player
                 return velocity;
             Quaternion slopeRotation = Quaternion.FromToRotation(_view.transform.up, slopeHit.normal);
             Vector3 adjustedVelocity = slopeRotation * velocity;
-            
+
             return adjustedVelocity.y != 0 ? adjustedVelocity : velocity;
         }
 
@@ -375,42 +327,23 @@ namespace YellowOrphan.Player
 
             _view.HeadTarget.transform.localEulerAngles = angles;
         }
-
-        private void DrawLine()
-        {
-            if (!IsHooked)
-            {
-                _view.LineRenderer.SetPosition(0, _view.RayStart.position);
-                _view.LineRenderer.SetPosition(1, _view.RayStart.position);
-                return;
-            }
-            _view.LineRenderer.SetPosition(0, _view.RayStart.position);
-            _view.LineRenderer.SetPosition(1, _hookPoint);
-        }
-
-        private void AdjustLegs()
-        {
-            Physics.Raycast(new Ray(_view.LeftLegTarget.position, Vector3.down), out RaycastHit leftLegHit, 1f);
-            Physics.Raycast(new Ray(_view.RightLegTarget.position, Vector3.down), out RaycastHit rightLegHit, 1f);
-            
-            Vector3 leftForward = Vector3.ProjectOnPlane(_view.transform.forward, leftLegHit.normal);
-            Quaternion leftRotation = Quaternion.LookRotation(leftForward, leftLegHit.normal);
-            
-            Vector3 rightForward = Vector3.ProjectOnPlane(_view.transform.forward, rightLegHit.normal);
-            Quaternion rightRotation = Quaternion.LookRotation(rightForward, rightLegHit.normal);
-            
-            _view.LeftLegTarget.rotation = Quaternion.Lerp(_view.LeftLegTarget.rotation, leftRotation, Time.deltaTime * _turnSpeed * 2f);
-            _view.RightLegTarget.rotation = Quaternion.Lerp(_view.RightLegTarget.rotation, rightRotation, Time.deltaTime * _turnSpeed * 2f);
-        }
     }
 
     public interface IPlayerState
     {
         public float CurrentSpeed { get; }
         public float CurrentStamina { get; }
+        
 
-        public bool InputBlocked { get; set; }
+        public bool IsGrounded { get; }
         public bool IsAiming { get; }
         public bool IsHooked { get; }
+        public bool InputBlocked { get; set; }
+    }
+
+    public interface IPlayerMotion
+    {
+        public Vector3 InputDirection{ get; }
+        public float CurrentHorizontalSpeed { get; }
     }
 }
