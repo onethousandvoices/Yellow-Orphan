@@ -86,7 +86,7 @@ MonoBehaviour:
   active: 1
   indirectDiffuseLightingMultiplier:
     m_OverrideState: 1
-    m_Value: 0.7
+    m_Value: 0.81
   indirectDiffuseLightingLayers:
     m_OverrideState: 0
     m_Value: 255
@@ -225,7 +225,7 @@ MonoBehaviour:
     m_Value: 7
   meanFreePath:
     m_OverrideState: 1
-    m_Value: 2
+    m_Value: 1.5
   enableVolumetricFog:
     m_OverrideState: 1
     m_Value: 1
