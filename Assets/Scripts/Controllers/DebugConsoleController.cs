@@ -21,10 +21,10 @@ namespace YellowOrphan.Controllers
 
         public void Initialize()
         {
-            DebugCommand help = new DebugCommand("help", "List of all commands", "help", Help);
-            DebugCommand testException = new DebugCommand("exception", "Test exception", "exception", TestException);
-            DebugCommand<int> setFps = new DebugCommand<int>("fps_", "Set fps (0 - uncapped)", "fps_<value>", FrameRateChange);
-            DebugCommand<float> setTimeScale = new DebugCommand<float>("time_", "Set time scale 0 - 100", "time_<value>", TimeScaleChange);
+            DebugCommand help = new DebugCommand("help", "List of all commands", Help);
+            DebugCommand testException = new DebugCommand("exception", "Test exception", TestException);
+            DebugCommand<int> setFps = new DebugCommand<int>("fps_", "Set fps (0 - uncapped)", FrameRateChange);
+            DebugCommand<float> setTimeScale = new DebugCommand<float>("time_", "Set time scale 0 - 100", TimeScaleChange);
 
             _commands = new List<DebugCommandBase>
             {
@@ -94,7 +94,7 @@ namespace YellowOrphan.Controllers
         }
 
         private void Help()
-            => _view.Log(_commands.Select(x => new LoggedString($"{x.Format} - {x.Description}", Color.green)).ToArray());
+            => _view.Log(_commands.Select(x => new LoggedString($"{x.Id} - {x.Description}", Color.green)).ToArray());
 
         private static void TestException()
             => throw new Exception("TEST EXCEPTION");
@@ -160,13 +160,11 @@ namespace YellowOrphan.Controllers
     {
         public readonly string Id;
         public readonly string Description;
-        public readonly string Format;
 
-        protected DebugCommandBase(string id, string description, string format)
+        protected DebugCommandBase(string id, string description)
         {
             Id = id;
             Description = description;
-            Format = format;
         }
     }
 
@@ -174,7 +172,7 @@ namespace YellowOrphan.Controllers
     {
         private readonly Action<T> _command;
 
-        public DebugCommand(string id, string description, string format, Action<T> command) : base(id, description, format)
+        public DebugCommand(string id, string description, Action<T> command) : base(id, description)
             => _command = command;
 
         public void Invoke(T value)
@@ -185,7 +183,7 @@ namespace YellowOrphan.Controllers
     {
         private readonly Action _command;
 
-        public DebugCommand(string id, string description, string format, Action command) : base(id, description, format)
+        public DebugCommand(string id, string description, Action command) : base(id, description)
             => _command = command;
 
         public void Invoke()

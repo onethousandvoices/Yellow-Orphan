@@ -1531,8 +1531,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 241.7, y: -161.60358}
-  m_SizeDelta: {x: 430.8552, y: 44.597}
+  m_AnchoredPosition: {x: 141, y: -40}
+  m_SizeDelta: {x: 207.3554, y: 21.463}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4593634321602508801
 CanvasRenderer:
@@ -1860,6 +1860,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _debugConsoleView: {fileID: 4593634322326858795}
+  _graphyManager: {fileID: 4593634321224520300}
   _playerStatsView: {fileID: 4593634322157837781}
   _mono: {fileID: 4593634321443616811}
 --- !u!1 &4593634321715571975
@@ -2107,10 +2108,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   height: 4
   commandHeight: 21
-  width: 527
+  width: 531
   upperLogHeight: 440.8
   _background: {fileID: 2800000, guid: f834e7df6f42446b59c83dca1e5bd098, type: 3}
-  <LoggedStringWidth>k__BackingField: 88
+  <LoggedStringWidth>k__BackingField: 90
 --- !u!1 &4593634322402173279
 GameObject:
   m_ObjectHideFlags: 0
@@ -2964,6 +2965,18 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0abab5bb77339e4428787a870eb31bd3, type: 3}
+--- !u!114 &4593634321224520300 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 11496292, guid: 0abab5bb77339e4428787a870eb31bd3,
+    type: 3}
+  m_PrefabInstance: {fileID: 4593634321214880008}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c80e6d63202cef44ca3ffdaccec693be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!224 &4593634321236536540 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 22451668, guid: 0abab5bb77339e4428787a870eb31bd3,
