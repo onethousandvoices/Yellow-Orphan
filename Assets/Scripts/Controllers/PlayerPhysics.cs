@@ -9,11 +9,12 @@ namespace YellowOrphan.Controllers
     {
         private SpringJoint _joint;
         private Vector3 _hookPoint;
-        
+
         private readonly Rigidbody _rb;
         private readonly PlayerView _view;
         private readonly IPlayerState _playerState;
         private readonly RigidbodyConstraints _rbConstraints;
+        private readonly Vector3 _jointAnchor;
 
         private readonly float _baseRbMass;
         private readonly float _baseRbDrag;
@@ -29,8 +30,6 @@ namespace YellowOrphan.Controllers
             set => _rb.velocity = value;
         }
         
-        public bool RotationNormalizing { get; private set; }
-        
         public PlayerPhysics(PlayerView view, IPlayerState playerState)
         {
             _view = view;
@@ -42,7 +41,9 @@ namespace YellowOrphan.Controllers
             _baseRbMass = _rb.mass;
             _baseRbDrag = _rb.drag;
             _baseRbAngularDrag = _rb.angularDrag;
-
+            
+            _jointAnchor = new Vector3(0f, 0.24f, 0f);
+            
             HookStop();
         }
 
@@ -58,12 +59,12 @@ namespace YellowOrphan.Controllers
             _joint = _rb.gameObject.AddComponent<SpringJoint>();
             _joint.autoConfigureConnectedAnchor = false;
             _joint.connectedAnchor = target;
-            _joint.anchor = new Vector3(0f, 1.2f, 0f);
+            _joint.anchor = _jointAnchor;
 
             float distance = Vector3.Distance(_rb.transform.position, target);
 
             _joint.maxDistance = distance * 0.8f;
-            _joint.minDistance = 0.1f;
+            _joint.minDistance = _view.HookMinLength;
 
             _joint.spring = 4.5f;
             _joint.damper = 7f;
@@ -111,7 +112,7 @@ namespace YellowOrphan.Controllers
         
         public IEnumerator NormalizeRotation(float time)
         {
-            RotationNormalizing = true;
+            _playerState.InputBlocked = true;
             float t = 0f;
             Quaternion startRotation = _rb.rotation;
             Quaternion target = Quaternion.Euler(new Vector3(0f, _rb.rotation.eulerAngles.y, 0f));
@@ -124,7 +125,7 @@ namespace YellowOrphan.Controllers
             }
             _rb.MoveRotation(target);
             _rb.constraints = _rbConstraints;
-            RotationNormalizing = false;
+            _playerState.InputBlocked = false;
         }
         
         public void DrawLine()

@@ -20,8 +20,10 @@ namespace Controllers
 
         private static readonly int _trackOffset = Shader.PropertyToID("_Track_offset");
 
+        private const float _shaderValueMultiplier = 3f;
         private const float _tracksModStep = 0.1f;
-        private const float _angleMinDelta = 8f;
+        private const float _tracksMotionMinAngle = 8f;
+        private const float _trackRotationMaxAngle = 50;
 
         public PlayerTracks(PlayerView view, IPlayerState playerState, IPlayerMotion playerMotion)
         {
@@ -33,15 +35,22 @@ namespace Controllers
 
         public void AdjustLegs()
         {
-            float rayLength = _player.IsGrounded ? 0.9f : 0.5f;
+            float rayLength = _view.LegsRayLength;
 
+            Transform leftLegRayStart = _view.LeftLegRayStart;
+            Transform rightLegRayStart = _view.RightLegRayStart;
             Transform leftLegTargetPosition = _view.LeftLegTargetPosition;
             Transform rightLegTargetPosition = _view.RightLegTargetPosition;
             Transform leftLegTargetRotation = _view.LeftLegTargetRotation;
             Transform rightLegTargetRotation = _view.RightLegTargetRotation;
 
-            Physics.Raycast(new Ray(leftLegTargetRotation.position, -leftLegTargetRotation.up), out RaycastHit leftLegHit, rayLength, layerMask: _view.GroundLayers);
-            Physics.Raycast(new Ray(rightLegTargetRotation.position, -rightLegTargetRotation.up), out RaycastHit rightLegHit, rayLength, layerMask: _view.GroundLayers);
+            Physics.Raycast(new Ray(leftLegRayStart.position, -leftLegRayStart.up), out RaycastHit leftLegHit, rayLength, layerMask: _view.GroundLayers);
+            Physics.Raycast(new Ray(rightLegRayStart.position, -rightLegRayStart.up), out RaycastHit rightLegHit, rayLength, layerMask: _view.GroundLayers);
+
+#if UNITY_EDITOR
+            Debug.DrawRay(leftLegRayStart.position, -leftLegRayStart.up * rayLength, Color.cyan);
+            Debug.DrawRay(rightLegRayStart.position, -rightLegRayStart.up * rayLength, Color.cyan);
+#endif
 
             Vector3 leftLegOffset = new Vector3(0f, Vector3.Distance(_view.LeftLegBottom.position, leftLegHit.point), 0f);
             Vector3 rightLegOffset = new Vector3(0f, Vector3.Distance(_view.RightLegBottom.position, rightLegHit.point), 0f);
@@ -58,7 +67,8 @@ namespace Controllers
             if (leftLegHit.transform != null)
             {
                 if (_player.IsGrounded)
-                    leftLegTargetRotation.rotation = Quaternion.Lerp(leftLegTargetRotation.rotation, leftRotation, Time.deltaTime * _turnSpeed * 4f);
+                    if (Quaternion.Angle(leftLegTargetRotation.rotation, leftRotation) < _trackRotationMaxAngle)
+                        leftLegTargetRotation.rotation = Quaternion.Lerp(leftLegTargetRotation.rotation, leftRotation, Time.deltaTime * _turnSpeed * 4f);
                 leftLegTargetPosition.position = Vector3.Lerp(leftLegTargetPosition.position, leftLegHit.point + leftLegOffset, Time.deltaTime * _turnSpeed * 4f);
             }
             else if (leftLegHit.transform == null)
@@ -71,7 +81,8 @@ namespace Controllers
             if (rightLegHit.transform != null)
             {
                 if (_player.IsGrounded)
-                    rightLegTargetRotation.rotation = Quaternion.Lerp(rightLegTargetRotation.rotation, rightRotation, Time.deltaTime * _turnSpeed * 4f);
+                    if (Quaternion.Angle(rightLegTargetRotation.rotation, rightRotation) < _trackRotationMaxAngle)
+                        rightLegTargetRotation.rotation = Quaternion.Lerp(rightLegTargetRotation.rotation, rightRotation, Time.deltaTime * _turnSpeed * 4f);
                 rightLegTargetPosition.position = Vector3.Lerp(rightLegTargetPosition.position, rightLegHit.point + rightLegOffset, Time.deltaTime * _turnSpeed * 4f);
             }
             else if (rightLegHit.transform == null)
@@ -84,32 +95,32 @@ namespace Controllers
 
         public void RotateTracks()
         {
-            float leftTrackTargetSpeed = _playerMotion.CurrentHorizontalSpeed * _leftMod;
-            float rightTrackTargetSpeed = _playerMotion.CurrentHorizontalSpeed  * _rightMod;
-            
+            float leftTrackTargetSpeed = _playerMotion.CurrentHorizontalSpeed * _leftMod * _shaderValueMultiplier;
+            float rightTrackTargetSpeed = _playerMotion.CurrentHorizontalSpeed * _rightMod * _shaderValueMultiplier;
+
             _leftTrackSpeed += leftTrackTargetSpeed * Time.fixedDeltaTime * _turnSpeed;
             _rightTrackSpeed += rightTrackTargetSpeed * Time.fixedDeltaTime * _turnSpeed;
 
             _view.LeftLegMaterial.SetFloat(_trackOffset, -_leftTrackSpeed);
             _view.RightLegMaterial.SetFloat(_trackOffset, -_rightTrackSpeed);
-            
+
             if (_player.IsHooked && !_player.IsGrounded || !_player.IsGrounded)
             {
                 _leftMod = Mathf.Lerp(_leftMod, 0, Time.fixedDeltaTime);
                 _rightMod = Mathf.Lerp(_rightMod, 0, Time.fixedDeltaTime);
                 return;
             }
-            
+
             if (_playerMotion.InputDirection.magnitude == 0)
                 return;
-            
+
             float fromY = _view.transform.rotation.eulerAngles.y;
             float toY = Quaternion.LookRotation(_playerMotion.InputDirection).eulerAngles.y;
 
             if (fromY > 270 && toY == 0)
                 fromY -= 360;
-            
-            if (Math.Abs(fromY - toY) > _angleMinDelta)
+
+            if (Math.Abs(fromY - toY) > _tracksMotionMinAngle)
             {
                 float clockwise;
                 float counterClockwise;
@@ -143,7 +154,7 @@ namespace Controllers
                 _leftMod = _tracksModStep;
                 _rightMod = _tracksModStep;
             }
-            
+
             // Debug.LogError($"left {_leftTrackSpeed:.##} {_leftMod} right {_rightTrackSpeed:.##} {_rightMod} from {fromY} to {toY}");
         }
     }

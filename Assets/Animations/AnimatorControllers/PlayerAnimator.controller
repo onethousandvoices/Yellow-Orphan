@@ -135,7 +135,7 @@ BlendTree:
   - serializedVersion: 2
     m_Motion: {fileID: 4158794028328810590, guid: c241684069165bb429221e2fd57b4006,
       type: 3}
-    m_Threshold: 6
+    m_Threshold: 1
     m_Position: {x: 0, y: 0}
     m_TimeScale: 1
     m_CycleOffset: 0
@@ -144,7 +144,7 @@ BlendTree:
   m_BlendParameter: SpeedBlend
   m_BlendParameterY: Blend
   m_MinThreshold: 0.1
-  m_MaxThreshold: 6
+  m_MaxThreshold: 1
   m_UseAutomaticThresholds: 0
   m_NormalizedBlendValues: 0
   m_BlendType: 0

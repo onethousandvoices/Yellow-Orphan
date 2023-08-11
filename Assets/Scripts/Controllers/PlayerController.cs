@@ -117,7 +117,7 @@ namespace YellowOrphan.Player
 
         private void OnLMBStarted(InputAction.CallbackContext obj)
         {
-            if (!IsAiming || _playerPhysics.RotationNormalizing)
+            if (!IsAiming || InputBlocked)
                 return;
 
             Physics.Raycast(_view.HookRayStart.position, _view.HookRayStart.forward * _view.HookRange, out RaycastHit hit);
@@ -139,7 +139,7 @@ namespace YellowOrphan.Player
             _wasHooked = false;
             _airControl = false;
             _playerPhysics.HookStop();
-            _mono.StartCoroutine(_playerPhysics.NormalizeRotation(0.6f));
+            _mono.StartCoroutine(_playerPhysics.NormalizeRotation(0.3f));
         }
 
         private void ReadInput()
@@ -224,7 +224,7 @@ namespace YellowOrphan.Player
         {
             float targetSpeed = _sprint ? _view.SprintSpeed : _view.WalkSpeed;
 
-            if (_move == Vector2.zero)
+            if (_move.sqrMagnitude == 0)
                 targetSpeed = 0f;
 
             CurrentHorizontalSpeed = new Vector3(_playerPhysics.Velocity.x, 0f, _playerPhysics.Velocity.z).magnitude;
@@ -244,8 +244,13 @@ namespace YellowOrphan.Player
                 _playerPhysics.AddForce(velocityChange, ForceMode.Acceleration);
 
             if (_isOnSlope && !IsHooked)
-                _playerPhysics.AddForce(-_groundHit.transform.up * (_slopeAngle >= _view.MaxSlopeAngle ? 3000f : 500f), ForceMode.Force);
-
+            {
+                if (_slopeAngle >= _view.MaxSlopeAngle)
+                    _playerPhysics.AddForce(-_view.transform.up * _view.ImpossibleSlopeDownwardForce, ForceMode.Force);
+                else
+                    _playerPhysics.AddForce(-_groundHit.transform.up * _view.PossibleSlopeDownwardForce, ForceMode.Force);
+            }
+            
             if (InputDirection.magnitude > 0 && IsGrounded)
                 _view.transform.rotation = Quaternion.Slerp(_view.transform.rotation, Quaternion.LookRotation(velocityChange), Time.fixedDeltaTime * _view.TurnSpeed);
 
@@ -254,15 +259,20 @@ namespace YellowOrphan.Player
 
         private void GroundCheck()
         {
-            Vector3 rayStart = new Vector3(_view.transform.position.x, _view.transform.position.y + 0.3f, _view.transform.position.z);
+            Vector3 rayStart = new Vector3(_view.transform.position.x, _view.transform.position.y + _view.GroundCheckRayOffset, _view.transform.position.z);
             Ray ray = new Ray(rayStart, -_view.transform.up);
 
-            Physics.Raycast(ray, out _groundHit, 5f);
+            Physics.Raycast(ray, out _groundHit, _view.GroundCheckRayLength);
 
+#if UNITY_EDITOR
+            Debug.DrawRay(rayStart, -_view.transform.up * _view.GroundCheckRayLength, Color.green);
+            // Debug.LogError($"grounded {IsGrounded} slope {_isOnSlope} slopeAngle {_slopeAngle}");
+#endif
+            
             if (_groundHit.transform != null)
-                _slopeAngle = Vector3.Angle(_view.transform.up, _groundHit.normal) - 90;
+                _slopeAngle = Vector3.Angle(_view.transform.up, _groundHit.normal);
 
-            IsGrounded = _groundHit.transform != null && _groundHit.distance < 0.7f;
+            IsGrounded = _groundHit.transform != null && _groundHit.distance < _view.GroundCheckMinDistance;
             _isOnSlope = _groundHit.transform != null && IsGrounded && Mathf.Abs(_slopeAngle) > 0.1f;
 
             _playerPhysics.SetGravity(!_isOnSlope);

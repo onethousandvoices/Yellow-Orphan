@@ -1,5 +1,4 @@
 ﻿using NaughtyAttributes;
-using System;
 using UnityEngine;
 
 namespace Views
@@ -9,7 +8,7 @@ namespace Views
         [field: Header("Settings")]
         [field: HorizontalLine(color: EColor.Blue), Header("Motion"), Space]
         [field: SerializeField, Range(1f, 30f)] public float WalkSpeed { get; private set; }
-        [field: SerializeField, Range(20f, 50f)] public float SprintSpeed { get; private set; }
+        [field: SerializeField, Range(1f, 50f)] public float SprintSpeed { get; private set; }
         [field: SerializeField, Range(20f, 80f)] public float MaxSlopeAngle { get; private set; }
         [field: SerializeField, Range(1f, 30f)] public float TurnSpeed { get; private set; }
         [field: SerializeField, Range(1f, 200f)] public int MaxStamina { get; private set; }
@@ -25,14 +24,27 @@ namespace Views
         [field: SerializeField, MinMaxSlider(-100, 100)] public Vector2 LookRangeY { get; private set; }
 
         [field: Header("Hook"), Space]
-        [field: SerializeField, Range(1f, 20f)] public float HookRange { get; private set; }
-        [field: SerializeField, Range(0.1f, 5f)] public float HookClimbSpeed { get; private set; }
-        [field: SerializeField, Range(0.1f, 5f)] public float HookDescendSpeed { get; private set; }
+        [field: SerializeField, Range(1f, 25f)] public float HookRange { get; private set; }
+        [field: SerializeField, Range(0.1f, 25f)] public float HookClimbSpeed { get; private set; }
+        [field: SerializeField, Range(0.1f, 25f)] public float HookDescendSpeed { get; private set; }
+        [field: SerializeField, Range(0f, 1f)] public float HookMinLength { get; private set; }
+        
+        [field: Header("Rays"), Space]
+        [field: SerializeField, Range(0f, 2f)] public float GroundCheckRayLength { get; private set; }
+        [field: SerializeField, Range(0f, 2f)] public float GroundCheckRayOffset { get; private set; }
+        [field: SerializeField, Range(0f, 2f)] public float GroundCheckMinDistance { get; private set; }
+        [field: SerializeField, Range(0f, 2f)] public float LegsRayLength { get; private set; }
 
+        [field: Header("Forces"), Space]
+        [field: SerializeField, Range(1f, 5000f)] public float PossibleSlopeDownwardForce { get; private set; }
+        [field: SerializeField, Range(1f, 5000f)] public float ImpossibleSlopeDownwardForce { get; private set; }
+        
         [field: Space]
         [field: Header("References")]
         [field: HorizontalLine(color: EColor.Red), Header("Transforms"), Space]
         [field: SerializeField] public Transform HookRayStart { get; private set; }
+        [field: SerializeField] public Transform LeftLegRayStart { get; private set; }
+        [field: SerializeField] public Transform RightLegRayStart { get; private set; }
         [field: SerializeField] public Transform LeftLegTargetRotation { get; private set; }
         [field: SerializeField] public Transform RightLegTargetRotation { get; private set; }
         [field: SerializeField] public Transform LeftLegTargetPosition { get; private set; }
@@ -52,32 +64,16 @@ namespace Views
         [field: SerializeField] public LineRenderer LineRenderer { get; private set; }
         [field: SerializeField] public LayerMask GroundLayers { get; private set; }
 
-        //todo debug
-        private Ray _ray;
-        private Ray _ray2;
-
         public Vector3 LeftLegBasePos { get; private set; }
         public Vector3 RightLegBasePos { get; private set; }
-
+        
         private void Awake()
             => OnValidate();
-
-        private void OnTriggerEnter(Collider other)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SetGizmos(Ray ray, Ray ray2)
-        {
-            _ray = ray;
-            _ray2 = ray2;
-        }
 
         private void OnDrawGizmos()
         {
             Gizmos.DrawRay(HookRayStart.position, HookRayStart.forward * HookRange);
             // Gizmos.DrawRay(_ray);
-            Gizmos.DrawRay(_ray2);
         }
 
         [Button("Force Validate")]
@@ -113,6 +109,12 @@ namespace Views
                     case "RightLegBottom":
                         RightLegBottom = t;
                         RightLegBottom.localPosition = new Vector3(0f, -0.0927f, 0f);
+                        break;
+                    case "LeftLegRayStart":
+                        LeftLegRayStart = t;
+                        break;
+                    case "RightLegRayStart":
+                        RightLegRayStart = t;
                         break;
                 }
             }
