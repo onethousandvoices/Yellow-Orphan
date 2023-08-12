@@ -148,7 +148,11 @@ namespace YellowOrphan.Player
         private void ReadInput()
         {
             if (InputBlocked)
+            {
+                _move = Vector2.zero;
+                _look = Vector2.zero;
                 return;
+            }
 
             _move = _inputMap.Player.Move.ReadValue<Vector2>();
             _look = _inputMap.Player.Look.ReadValue<Vector2>();

@@ -19,6 +19,8 @@ namespace YellowOrphan.Controllers
         private readonly List<string> _previousCommands = new List<string>();
         private int _commandsPointer;
 
+        public bool ConsoleShown => _view.ConsoleShown;
+        
         public void Initialize()
         {
             DebugCommand help = new DebugCommand("help", "List of all commands", Help);
@@ -110,7 +112,7 @@ namespace YellowOrphan.Controllers
             Time.timeScale = time;
             Debug.Log($"Time scale set to {time}");
         }
-
+        
         public void ShowConsole()
         {
             _view.ResetInput();
@@ -149,6 +151,8 @@ namespace YellowOrphan.Controllers
 
     public interface IConsoleHandler
     {
+        public bool ConsoleShown { get; }
+        
         public void ShowConsole();
         public void SubscribeToLog();
         public void OnReturn();

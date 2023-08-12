@@ -8,7 +8,6 @@ namespace YellowOrphan.Controllers
     public class GameController : IInitializable
     {
         [Inject] private IConsoleHandler _consoleHandler;
-        [Inject] private IPlayerState _player;
         [Inject] private ITimeTickable _timeTickable;
 
         public void Initialize()
@@ -21,7 +20,7 @@ namespace YellowOrphan.Controllers
         
         private void CheckCursor()
         {
-            if (_player.InputBlocked)
+            if (_consoleHandler.ConsoleShown)
             {
                 Cursor.lockState = CursorLockMode.Confined;
                 return;
