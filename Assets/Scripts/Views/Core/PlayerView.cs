@@ -27,7 +27,7 @@ namespace Views
         [field: Header("Hook"), Space]
         [field: SerializeField, Range(1f, 25f)] public float HookRangeMax { get; private set; }
         [field: SerializeField, Range(0.1f, 2f)] public float HookRangeMin { get; private set; }
-        [field: SerializeField, Range(0.1f, 25f)] public float HookClimbSpeed { get; private set; }
+        [field: SerializeField, Range(0.1f, 25f)] public float HookAscendSpeed { get; private set; }
         [field: SerializeField, Range(0.1f, 25f)] public float HookDescendSpeed { get; private set; }
         [field: SerializeField, Range(0f, 1f)] public float HookMinLength { get; private set; }
         [field: SerializeField, Range(0f, 10f)] public float HookedRbMass { get; private set; }
@@ -67,23 +67,19 @@ namespace Views
         [field: SerializeField] public Rigidbody Rb { get; private set; }
         [field: SerializeField] public PhysicMaterial SlipperyMaterial { get; private set; }
         [field: SerializeField] public PhysicMaterial FrictionMaterial { get; private set; }
-        [field: SerializeField] public Material LeftLegMaterial { get; private set; }
-        [field: SerializeField] public Material RightLegMaterial { get; private set; }
+        [field: SerializeField] public MeshRenderer LeftLegRenderer { get; private set; }
+        [field: SerializeField] public MeshRenderer RightLegRenderer { get; private set; }
         [field: SerializeField] public LineRenderer LineRenderer { get; private set; }
         [field: SerializeField] public LayerMask WalkableLayers { get; private set; }
 
-        public bool IsHookDebug { get; private set; }
+        [field: SerializeField, HideInInspector] public bool IsHookDebug { get; private set; }
         
-        public Vector3 LeftLegBasePos { get; private set; }
-        public Vector3 RightLegBasePos { get; private set; }
+        [field: SerializeField, HideInInspector] public Vector3 LeftLegBasePos { get; private set; }
+        [field: SerializeField, HideInInspector] public Vector3 RightLegBasePos { get; private set; }
         
-        private void Awake()
-            => OnValidate();
-
         private void OnDrawGizmos()
         {
             Gizmos.DrawRay(HookRayStart.position, HookRayStart.forward * HookRangeMax);
-            // Gizmos.DrawRay(_ray);
         }
 
         [Button("Force Validate")]
@@ -126,13 +122,19 @@ namespace Views
                     case "RightLegRayStart":
                         RightLegRayStart = t;
                         break;
+                    case "TrackL":
+                        LeftLegRenderer = t.GetComponent<MeshRenderer>();
+                        break;
+                    case "TrackR":
+                        RightLegRenderer = t.GetComponent<MeshRenderer>();
+                        break;
                 }
             }
 
             if (LeftLegTargetPosition != null)
-                LeftLegBasePos = LeftLegTargetPosition.localPosition;
+                LeftLegBasePos = LeftLegTargetPosition.position;
             if (RightLegTargetPosition != null)
-                RightLegBasePos = RightLegTargetPosition.localPosition;
+                RightLegBasePos = RightLegTargetPosition.position;
 
             Animator ??= GetComponent<Animator>();
             Rb ??= GetComponent<Rigidbody>();

@@ -14,7 +14,7 @@ namespace Controllers
 
         private bool _leftTrackGrounded;
         private bool _rightTrackGrounded;
-        
+
         private float _leftMod;
         private float _rightMod;
         private float _leftTrackSpeed;
@@ -49,26 +49,22 @@ namespace Controllers
 
             Physics.Raycast(new Ray(leftLegRayStart.position, -leftLegRayStart.up), out RaycastHit leftLegHit, rayLength, layerMask: _view.WalkableLayers);
             Physics.Raycast(new Ray(rightLegRayStart.position, -rightLegRayStart.up), out RaycastHit rightLegHit, rayLength, layerMask: _view.WalkableLayers);
-
 #if UNITY_EDITOR
             Debug.DrawRay(leftLegRayStart.position, -leftLegRayStart.up * rayLength, Color.cyan);
             Debug.DrawRay(rightLegRayStart.position, -rightLegRayStart.up * rayLength, Color.cyan);
+            // Debug.LogError($"leftTrack {_leftTrackGrounded} rightTrack {_rightTrackGrounded}");
 #endif
-
             Vector3 leftLegOffset = new Vector3(0f, Vector3.Distance(_view.LeftLegBottom.position, leftLegHit.point), 0f);
             Vector3 rightLegOffset = new Vector3(0f, Vector3.Distance(_view.RightLegBottom.position, rightLegHit.point), 0f);
 
-            Quaternion leftRotationInAir = Quaternion.Euler(new Vector3(leftLegTargetRotation.eulerAngles.x, leftLegTargetRotation.eulerAngles.y, 15f));
-            Quaternion rightRotationInAir = Quaternion.Euler(new Vector3(rightLegTargetRotation.eulerAngles.x, rightLegTargetRotation.eulerAngles.y, -15f));
-
-            Vector3 leftForward = Vector3.ProjectOnPlane(_view.transform.forward, leftLegHit.normal);
-            Quaternion leftRotation = Quaternion.LookRotation(leftForward, leftLegHit.normal);
-
-            Vector3 rightForward = Vector3.ProjectOnPlane(_view.transform.forward, rightLegHit.normal);
-            Quaternion rightRotation = Quaternion.LookRotation(rightForward, rightLegHit.normal);
+            Quaternion leftRotationInAir = _view.transform.rotation * Quaternion.Euler(0f, 0f, 15f);
+            Quaternion rightRotationInAir = _view.transform.rotation * Quaternion.Euler(0f, 0f, -15f);
 
             if (leftLegHit.transform != null)
             {
+                Vector3 leftForward = Vector3.ProjectOnPlane(_view.transform.forward, leftLegHit.normal);
+                Quaternion leftRotation = Quaternion.LookRotation(leftForward, leftLegHit.normal);
+
                 if (_playerState.IsGrounded)
                     if (Quaternion.Angle(leftLegTargetRotation.rotation, leftRotation) < _trackRotationMaxAngle)
                         leftLegTargetRotation.rotation = Quaternion.Lerp(leftLegTargetRotation.rotation, leftRotation, Time.deltaTime * _turnSpeed * 4f);
@@ -77,14 +73,16 @@ namespace Controllers
             }
             else if (leftLegHit.transform == null)
             {
-                if (!_playerState.IsHooked)
-                    leftLegTargetRotation.rotation = Quaternion.Lerp(leftLegTargetRotation.rotation, leftRotationInAir, Time.deltaTime * _turnSpeed / 2f);
+                leftLegTargetRotation.rotation = Quaternion.Lerp(leftLegTargetRotation.rotation, leftRotationInAir, Time.deltaTime * _turnSpeed / 2f);
                 leftLegTargetPosition.localPosition = Vector3.Lerp(leftLegTargetPosition.localPosition, _view.LeftLegBasePos, Time.deltaTime * _turnSpeed / 2f);
                 _leftTrackGrounded = false;
             }
 
             if (rightLegHit.transform != null)
             {
+                Vector3 rightForward = Vector3.ProjectOnPlane(_view.transform.forward, rightLegHit.normal);
+                Quaternion rightRotation = Quaternion.LookRotation(rightForward, rightLegHit.normal);
+
                 if (_playerState.IsGrounded)
                     if (Quaternion.Angle(rightLegTargetRotation.rotation, rightRotation) < _trackRotationMaxAngle)
                         rightLegTargetRotation.rotation = Quaternion.Lerp(rightLegTargetRotation.rotation, rightRotation, Time.deltaTime * _turnSpeed * 4f);
@@ -93,8 +91,7 @@ namespace Controllers
             }
             else if (rightLegHit.transform == null)
             {
-                if (!_playerState.IsHooked)
-                    rightLegTargetRotation.rotation = Quaternion.Lerp(rightLegTargetRotation.rotation, rightRotationInAir, Time.deltaTime * _turnSpeed / 2f);
+                rightLegTargetRotation.rotation = Quaternion.Lerp(rightLegTargetRotation.rotation, rightRotationInAir, Time.deltaTime * _turnSpeed / 2f);
                 rightLegTargetPosition.localPosition = Vector3.Lerp(rightLegTargetPosition.localPosition, _view.RightLegBasePos, Time.deltaTime * _turnSpeed / 2f);
                 _rightTrackGrounded = false;
             }
@@ -108,15 +105,13 @@ namespace Controllers
             _leftTrackSpeed += leftTrackTargetSpeed * Time.fixedDeltaTime * _turnSpeed;
             _rightTrackSpeed += rightTrackTargetSpeed * Time.fixedDeltaTime * _turnSpeed;
 
-            _view.LeftLegMaterial.SetFloat(_trackOffset, -_leftTrackSpeed);
-            _view.RightLegMaterial.SetFloat(_trackOffset, -_rightTrackSpeed);
-            
+            _view.LeftLegRenderer.material.SetFloat(_trackOffset, -_leftTrackSpeed);
+            _view.RightLegRenderer.material.SetFloat(_trackOffset, -_rightTrackSpeed);
+
             if (!_leftTrackGrounded)
                 _leftMod = Mathf.Lerp(_leftMod, 0, Time.fixedDeltaTime);
             if (!_rightTrackGrounded)
                 _rightMod = Mathf.Lerp(_rightMod, 0, Time.fixedDeltaTime);
-            
-            // Debug.LogError($"leftTrack {_leftTrackGrounded} rightTrack {_rightTrackGrounded}");
             
             if (_playerMotion.InputDirection.magnitude == 0)
                 return;

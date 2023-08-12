@@ -1040,8 +1040,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1766139459}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.29, z: 0.006844}
-  m_LocalScale: {x: 0.034994915, y: 0.53970987, z: 0.020509977}
+  m_LocalPosition: {x: 0, y: 1.854, z: -0.025921}
+  m_LocalScale: {x: 0.101118155, y: 0.53970987, z: 0.09421221}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1970221241}
@@ -1068,7 +1068,7 @@ MeshRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1766139459}
   m_Enabled: 1
-  m_CastShadows: 1
+  m_CastShadows: 0
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0
@@ -1509,33 +1509,23 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4593634320283532831, guid: 8ea6486099baa5c4399ff700af8738b0,
         type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4593634320283532831, guid: 8ea6486099baa5c4399ff700af8738b0,
-        type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0
+      value: 3.9825917e-11
       objectReference: {fileID: 0}
     - target: {fileID: 4593634320283532831, guid: 8ea6486099baa5c4399ff700af8738b0,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4593634321247801163, guid: 8ea6486099baa5c4399ff700af8738b0,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0.19443569
+      value: -1.6433964e-11
       objectReference: {fileID: 0}
     - target: {fileID: 4593634321247801163, guid: 8ea6486099baa5c4399ff700af8738b0,
         type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.00000001887018
+      value: -0.000000019000977
       objectReference: {fileID: 0}
     - target: {fileID: 4593634321247801163, guid: 8ea6486099baa5c4399ff700af8738b0,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.000000003740421
+      value: 0.0000000037663472
       objectReference: {fileID: 0}
     - target: {fileID: 4593634321292687189, guid: 8ea6486099baa5c4399ff700af8738b0,
         type: 3}

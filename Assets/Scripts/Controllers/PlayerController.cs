@@ -21,6 +21,7 @@ namespace YellowOrphan.Player
         private SphereCollider _sphereCollider;
         private PlayerPhysics _physics;
         private PlayerTracks _tracks;
+        private Coroutine _rotationNormalizationRoutine;
 
         private Vector2 _move;
         private Vector2 _look;
@@ -30,7 +31,6 @@ namespace YellowOrphan.Player
         private bool _staminaSpendable = true;
         private bool _airControl;
         private bool _isOnSlope;
-        private bool _wasHooked;
         
         private float _jumpTimeoutDelta;
         private float _fallTimeoutDelta;
@@ -81,6 +81,9 @@ namespace YellowOrphan.Player
             Look();
             _tracks.AdjustLegs();
             _tracks.RotateTracks();
+            _physics.CheckRbState();
+            
+            // Debug.LogError($"grounded {IsGrounded} hooked {IsHooked} input {InputBlocked} aim {IsAiming}");
         }
 
         public void FixedTick()
@@ -120,29 +123,22 @@ namespace YellowOrphan.Player
             if (!IsAiming || InputBlocked)
                 return;
 
-            Physics.Raycast(_view.HookRayStart.position, _view.HookRayStart.forward * _view.HookRangeMax, out RaycastHit hit);
-            if (hit.transform == null)
-                return;
-
-            if (hit.distance < _view.HookRangeMin)
+            Physics.Raycast(_view.HookRayStart.position, _view.HookRayStart.forward, out RaycastHit hit, _view.HookRangeMax);
+            
+            if (hit.transform == null || hit.distance < _view.HookRangeMin)
                 return;
             
             IsHooked = true;
-            _wasHooked = true;
             _airControl = true;
             _physics.TryHook(hit.point);
         }
 
         private void OnLMBCanceled(InputAction.CallbackContext obj)
         {
-            if (_view.IsHookDebug)
+            if (_view.IsHookDebug || !IsHooked)
                 return;
             
-            if (!_wasHooked)
-                return;
-
             IsHooked = false;
-            _wasHooked = false;
             _airControl = false;
             _physics.HookStop();
             _mono.StartCoroutine(_physics.NormalizeRotation(0.3f));
@@ -154,7 +150,7 @@ namespace YellowOrphan.Player
             _look = InputBlocked ? Vector2.zero : _inputMap.Player.Look.ReadValue<Vector2>();
             
             if (_inputMap.Player.HookClimb.IsPressed())
-                _physics.HookClimb(_view.HookClimbSpeed);
+                _physics.HookAscend(_view.HookAscendSpeed);
             else if (_inputMap.Player.HookDescend.IsPressed())
                 _physics.HookDescend(_view.HookDescendSpeed);
 
@@ -245,7 +241,7 @@ namespace YellowOrphan.Player
 
             if (IsGrounded || _airControl)
                 _physics.AddForce(velocityChange, ForceMode.Acceleration);
-
+            
             if (_isOnSlope && !IsHooked)
             {
                 if (_slopeAngle >= _view.MaxSlopeAngle)
@@ -255,8 +251,9 @@ namespace YellowOrphan.Player
             }
             
             if (InputDirection.magnitude > 0 && IsGrounded)
-                _view.transform.rotation = Quaternion.Slerp(_view.transform.rotation, Quaternion.LookRotation(velocityChange), Time.fixedDeltaTime * _view.TurnSpeed);
-
+                _view.transform.rotation = 
+                    Quaternion.Slerp(_view.transform.rotation, Quaternion.LookRotation(velocityChange), Time.fixedDeltaTime * _view.TurnSpeed);
+            
             _animator.SetFloat(_speedBlendHash, _physics.Velocity.magnitude);
         }
 
@@ -326,7 +323,7 @@ namespace YellowOrphan.Player
 
         private void Look()
         {
-            if (_look.sqrMagnitude == 0f || !IsAiming)
+            if (_look.sqrMagnitude == 0f || !IsAiming || IsHooked)
                 return;
             
             Vector3 angles = _view.HeadTarget.transform.localEulerAngles + new Vector3(_look.y, _look.x, 0f) * _view.Sensitivity;

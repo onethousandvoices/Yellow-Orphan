@@ -11,12 +11,12 @@ namespace YellowOrphan.Controllers
         [Inject] private IConsoleHandler _console;
 
         public void Initialize()
-            => _console.AddCommand(new DebugCommand("stats", "Toggle stats", ToggleStats));
-
-        private void ToggleStats()
         {
-            _graphy.gameObject.SetActive(!_graphy.gameObject.activeSelf);
-            _playerStatsView.gameObject.SetActive(!_playerStatsView.gameObject.activeSelf);
+            _console.AddCommand(new DebugCommand("stats", "Toggle stats", () =>
+            {
+                _graphy.gameObject.SetActive(!_graphy.gameObject.activeSelf);
+                _playerStatsView.gameObject.SetActive(!_playerStatsView.gameObject.activeSelf);
+            }));
         }
 
         public void SetStamina(float current, float max)

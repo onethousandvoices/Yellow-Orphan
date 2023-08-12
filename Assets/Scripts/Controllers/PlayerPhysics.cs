@@ -11,6 +11,7 @@ namespace YellowOrphan.Controllers
         private Vector3 _hookPoint;
         
         private float _currentMaxDistance;
+        private bool _isHooked;
 
         private readonly Rigidbody _rb;
         private readonly PlayerView _view;
@@ -47,6 +48,8 @@ namespace YellowOrphan.Controllers
 
         public void TryHook(Vector3 target)
         {
+            _isHooked = true;
+
             SetDrag(_view.HookedRbDrag);
             SetGravity(true);
             _rb.mass = _view.HookedRbMass;
@@ -54,33 +57,38 @@ namespace YellowOrphan.Controllers
             _rb.constraints = RigidbodyConstraints.None;
 
             _hookPoint = target;
+            _currentMaxDistance = Vector3.Distance(_rb.transform.position, _hookPoint) * 0.95f;
             
             _joint = _rb.gameObject.AddComponent<SpringJoint>();
             _joint.autoConfigureConnectedAnchor = false;
-            _joint.connectedAnchor = target;
+            _joint.connectedAnchor = _hookPoint;
             _joint.anchor = _jointAnchor;
-
-            _currentMaxDistance = Vector3.Distance(_rb.transform.position, target) * 0.95f;
-            
-            // Debug.LogError($"hookMaxDistance {_currentMaxDistance}");
-            
-            _joint.maxDistance = _currentMaxDistance;
-            _joint.minDistance = _view.HookMinLength;
-
             _joint.spring = _view.HookedSpring;
             _joint.damper = _view.HookedDamper;
             _joint.massScale = _view.HookedMassScale;
+            _joint.minDistance = _view.HookMinLength;
+            _joint.maxDistance = _currentMaxDistance;
+
+            // Debug.LogError($"hookMaxDistance {_currentMaxDistance}");
         }
 
+        public void CheckRbState()
+        {
+            if (_isHooked && _rb.IsSleeping())
+                _rb.WakeUp();
+        }
+        
         public void HookStop()
         {
+            _isHooked = false;
+            
             ResetDrag();
             _rb.mass = _baseRbMass;
             _rb.angularDrag = _baseRbAngularDrag;
 
             _hookPoint = Vector3.zero;
             
-            Object.Destroy(_rb.gameObject.GetComponent<SpringJoint>());
+            Object.Destroy(_joint);
         }
 
         public void HookDescend(float speed = 1f)
@@ -91,7 +99,7 @@ namespace YellowOrphan.Controllers
                 Mathf.Lerp(_joint.maxDistance, _currentMaxDistance, Time.deltaTime * speed);
         }
 
-        public void HookClimb(float speed = 1f)
+        public void HookAscend(float speed = 1f)
         {
             if (_joint == null)
                 return;
