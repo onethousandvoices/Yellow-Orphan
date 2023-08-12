@@ -23,7 +23,7 @@ namespace Controllers
 
         private static readonly int _trackOffset = Shader.PropertyToID("_Track_offset");
 
-        private const float _shaderValueMultiplier = 3f;
+        private const float _shaderValueMultiplier = 16f;
         private const float _tracksModStep = 0.1f;
         private const float _tracksMotionMinAngle = 8f;
         private const float _trackRotationMaxAngle = 50;
