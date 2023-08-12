@@ -120,10 +120,13 @@ namespace YellowOrphan.Player
             if (!IsAiming || InputBlocked)
                 return;
 
-            Physics.Raycast(_view.HookRayStart.position, _view.HookRayStart.forward * _view.HookRange, out RaycastHit hit);
+            Physics.Raycast(_view.HookRayStart.position, _view.HookRayStart.forward * _view.HookRangeMax, out RaycastHit hit);
             if (hit.transform == null)
                 return;
 
+            if (hit.distance < _view.HookRangeMin)
+                return;
+            
             IsHooked = true;
             _wasHooked = true;
             _airControl = true;
@@ -147,15 +150,8 @@ namespace YellowOrphan.Player
 
         private void ReadInput()
         {
-            if (InputBlocked)
-            {
-                _move = Vector2.zero;
-                _look = Vector2.zero;
-                return;
-            }
-
-            _move = _inputMap.Player.Move.ReadValue<Vector2>();
-            _look = _inputMap.Player.Look.ReadValue<Vector2>();
+            _move = InputBlocked ? Vector2.zero : _inputMap.Player.Move.ReadValue<Vector2>();
+            _look = InputBlocked ? Vector2.zero : _inputMap.Player.Look.ReadValue<Vector2>();
             
             if (_inputMap.Player.HookClimb.IsPressed())
                 _physics.HookClimb(_view.HookClimbSpeed);
@@ -281,8 +277,9 @@ namespace YellowOrphan.Player
 
             IsGrounded = _groundHit.transform != null && _groundHit.distance < _view.GroundCheckMinDistance;
             _isOnSlope = _groundHit.transform != null && IsGrounded && Mathf.Abs(_slopeAngle) > _view.MinSlopeAngle;
-
-            _physics.SetGravity(!_isOnSlope);
+            
+            if (!IsHooked)
+                _physics.SetGravity(!_isOnSlope);
 
             switch (IsGrounded)
             {

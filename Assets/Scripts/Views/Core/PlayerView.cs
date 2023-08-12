@@ -25,7 +25,8 @@ namespace Views
         [field: SerializeField, MinMaxSlider(-100, 100)] public Vector2 LookRangeY { get; private set; }
 
         [field: Header("Hook"), Space]
-        [field: SerializeField, Range(1f, 25f)] public float HookRange { get; private set; }
+        [field: SerializeField, Range(1f, 25f)] public float HookRangeMax { get; private set; }
+        [field: SerializeField, Range(0.1f, 2f)] public float HookRangeMin { get; private set; }
         [field: SerializeField, Range(0.1f, 25f)] public float HookClimbSpeed { get; private set; }
         [field: SerializeField, Range(0.1f, 25f)] public float HookDescendSpeed { get; private set; }
         [field: SerializeField, Range(0f, 1f)] public float HookMinLength { get; private set; }
@@ -81,7 +82,7 @@ namespace Views
 
         private void OnDrawGizmos()
         {
-            Gizmos.DrawRay(HookRayStart.position, HookRayStart.forward * HookRange);
+            Gizmos.DrawRay(HookRayStart.position, HookRayStart.forward * HookRangeMax);
             // Gizmos.DrawRay(_ray);
         }
 

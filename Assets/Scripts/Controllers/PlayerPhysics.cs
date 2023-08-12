@@ -48,6 +48,7 @@ namespace YellowOrphan.Controllers
         public void TryHook(Vector3 target)
         {
             SetDrag(_view.HookedRbDrag);
+            SetGravity(true);
             _rb.mass = _view.HookedRbMass;
             _rb.angularDrag = _view.HookedRbAngularDrag;
             _rb.constraints = RigidbodyConstraints.None;
@@ -60,6 +61,8 @@ namespace YellowOrphan.Controllers
             _joint.anchor = _jointAnchor;
 
             _currentMaxDistance = Vector3.Distance(_rb.transform.position, target) * 0.95f;
+            
+            // Debug.LogError($"hookMaxDistance {_currentMaxDistance}");
             
             _joint.maxDistance = _currentMaxDistance;
             _joint.minDistance = _view.HookMinLength;
