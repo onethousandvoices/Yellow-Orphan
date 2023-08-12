@@ -19,10 +19,6 @@ namespace YellowOrphan.Controllers
         private readonly float _baseRbMass;
         private readonly float _baseRbDrag;
         private readonly float _baseRbAngularDrag;
-
-        private const float _hookedRbMass = 1f;
-        private const float _hookedRbDrag = 1.5f;
-        private const float _hookedRbAngularDrag = 1f;
         
         public Vector3 Velocity
         {
@@ -49,9 +45,9 @@ namespace YellowOrphan.Controllers
 
         public void TryHook(Vector3 target)
         {
-            SetDrag(_hookedRbDrag);
-            _rb.mass = _hookedRbMass;
-            _rb.angularDrag = _hookedRbAngularDrag;
+            SetDrag(_view.HookedRbDrag);
+            _rb.mass = _view.HookedRbMass;
+            _rb.angularDrag = _view.HookedRbAngularDrag;
             _rb.constraints = RigidbodyConstraints.None;
 
             _hookPoint = target;
@@ -63,12 +59,12 @@ namespace YellowOrphan.Controllers
 
             float distance = Vector3.Distance(_rb.transform.position, target);
 
-            _joint.maxDistance = distance * 0.8f;
+            _joint.maxDistance = distance * 0.95f;
             _joint.minDistance = _view.HookMinLength;
 
-            _joint.spring = 4.5f;
-            _joint.damper = 7f;
-            _joint.massScale = 14.5f;
+            _joint.spring = _view.HookedSpring;
+            _joint.damper = _view.HookedDamper;
+            _joint.massScale = _view.HookedMassScale;
         }
 
         public void HookStop()

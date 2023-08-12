@@ -8,10 +8,13 @@ namespace Controllers
     public class PlayerTracks
     {
         private readonly PlayerView _view;
-        private readonly IPlayerState _player;
+        private readonly IPlayerState _playerState;
         private readonly IPlayerMotion _playerMotion;
         private readonly float _turnSpeed;
 
+        private bool _leftTrackGrounded;
+        private bool _rightTrackGrounded;
+        
         private float _leftMod;
         private float _rightMod;
         private float _leftTrackSpeed;
@@ -25,10 +28,10 @@ namespace Controllers
         private const float _tracksMotionMinAngle = 8f;
         private const float _trackRotationMaxAngle = 50;
 
-        public PlayerTracks(PlayerView view, IPlayerState playerState, IPlayerMotion playerMotion)
+        public PlayerTracks(PlayerView view, IPlayerState playerStateState, IPlayerMotion playerMotion)
         {
             _view = view;
-            _player = playerState;
+            _playerState = playerStateState;
             _playerMotion = playerMotion;
             _turnSpeed = _view.TurnSpeed;
         }
@@ -44,8 +47,8 @@ namespace Controllers
             Transform leftLegTargetRotation = _view.LeftLegTargetRotation;
             Transform rightLegTargetRotation = _view.RightLegTargetRotation;
 
-            Physics.Raycast(new Ray(leftLegRayStart.position, -leftLegRayStart.up), out RaycastHit leftLegHit, rayLength, layerMask: _view.GroundLayers);
-            Physics.Raycast(new Ray(rightLegRayStart.position, -rightLegRayStart.up), out RaycastHit rightLegHit, rayLength, layerMask: _view.GroundLayers);
+            Physics.Raycast(new Ray(leftLegRayStart.position, -leftLegRayStart.up), out RaycastHit leftLegHit, rayLength, layerMask: _view.WalkableLayers);
+            Physics.Raycast(new Ray(rightLegRayStart.position, -rightLegRayStart.up), out RaycastHit rightLegHit, rayLength, layerMask: _view.WalkableLayers);
 
 #if UNITY_EDITOR
             Debug.DrawRay(leftLegRayStart.position, -leftLegRayStart.up * rayLength, Color.cyan);
@@ -66,30 +69,34 @@ namespace Controllers
 
             if (leftLegHit.transform != null)
             {
-                if (_player.IsGrounded)
+                if (_playerState.IsGrounded)
                     if (Quaternion.Angle(leftLegTargetRotation.rotation, leftRotation) < _trackRotationMaxAngle)
                         leftLegTargetRotation.rotation = Quaternion.Lerp(leftLegTargetRotation.rotation, leftRotation, Time.deltaTime * _turnSpeed * 4f);
                 leftLegTargetPosition.position = Vector3.Lerp(leftLegTargetPosition.position, leftLegHit.point + leftLegOffset, Time.deltaTime * _turnSpeed * 4f);
+                _leftTrackGrounded = true;
             }
             else if (leftLegHit.transform == null)
             {
-                if (!_player.IsHooked)
+                if (!_playerState.IsHooked)
                     leftLegTargetRotation.rotation = Quaternion.Lerp(leftLegTargetRotation.rotation, leftRotationInAir, Time.deltaTime * _turnSpeed / 2f);
                 leftLegTargetPosition.localPosition = Vector3.Lerp(leftLegTargetPosition.localPosition, _view.LeftLegBasePos, Time.deltaTime * _turnSpeed / 2f);
+                _leftTrackGrounded = false;
             }
 
             if (rightLegHit.transform != null)
             {
-                if (_player.IsGrounded)
+                if (_playerState.IsGrounded)
                     if (Quaternion.Angle(rightLegTargetRotation.rotation, rightRotation) < _trackRotationMaxAngle)
                         rightLegTargetRotation.rotation = Quaternion.Lerp(rightLegTargetRotation.rotation, rightRotation, Time.deltaTime * _turnSpeed * 4f);
                 rightLegTargetPosition.position = Vector3.Lerp(rightLegTargetPosition.position, rightLegHit.point + rightLegOffset, Time.deltaTime * _turnSpeed * 4f);
+                _rightTrackGrounded = true;
             }
             else if (rightLegHit.transform == null)
             {
-                if (!_player.IsHooked)
+                if (!_playerState.IsHooked)
                     rightLegTargetRotation.rotation = Quaternion.Lerp(rightLegTargetRotation.rotation, rightRotationInAir, Time.deltaTime * _turnSpeed / 2f);
                 rightLegTargetPosition.localPosition = Vector3.Lerp(rightLegTargetPosition.localPosition, _view.RightLegBasePos, Time.deltaTime * _turnSpeed / 2f);
+                _rightTrackGrounded = false;
             }
         }
 
@@ -103,14 +110,14 @@ namespace Controllers
 
             _view.LeftLegMaterial.SetFloat(_trackOffset, -_leftTrackSpeed);
             _view.RightLegMaterial.SetFloat(_trackOffset, -_rightTrackSpeed);
-
-            if (_player.IsHooked && !_player.IsGrounded || !_player.IsGrounded)
-            {
+            
+            if (!_leftTrackGrounded)
                 _leftMod = Mathf.Lerp(_leftMod, 0, Time.fixedDeltaTime);
+            if (!_rightTrackGrounded)
                 _rightMod = Mathf.Lerp(_rightMod, 0, Time.fixedDeltaTime);
-                return;
-            }
-
+            
+            // Debug.LogError($"leftTrack {_leftTrackGrounded} rightTrack {_rightTrackGrounded}");
+            
             if (_playerMotion.InputDirection.magnitude == 0)
                 return;
 
@@ -120,7 +127,7 @@ namespace Controllers
             if (fromY > 270 && toY == 0)
                 fromY -= 360;
 
-            if (Math.Abs(fromY - toY) > _tracksMotionMinAngle)
+            if (Math.Abs(fromY - toY) > _tracksMotionMinAngle && _playerState.IsGrounded)
             {
                 float clockwise;
                 float counterClockwise;
@@ -151,8 +158,10 @@ namespace Controllers
             }
             else
             {
-                _leftMod = _tracksModStep;
-                _rightMod = _tracksModStep;
+                if (_leftTrackGrounded)
+                    _leftMod = _tracksModStep;
+                if (_rightTrackGrounded)
+                    _rightMod = _tracksModStep;
             }
 
             // Debug.LogError($"left {_leftTrackSpeed:.##} {_leftMod} right {_rightTrackSpeed:.##} {_rightMod} from {fromY} to {toY}");

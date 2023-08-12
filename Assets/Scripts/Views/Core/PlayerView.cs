@@ -10,13 +10,14 @@ namespace Views
         [field: SerializeField, Range(1f, 30f)] public float WalkSpeed { get; private set; }
         [field: SerializeField, Range(1f, 50f)] public float SprintSpeed { get; private set; }
         [field: SerializeField, Range(20f, 80f)] public float MaxSlopeAngle { get; private set; }
+        [field: SerializeField, Range(0.1f, 20f)] public float MinSlopeAngle { get; private set; }
         [field: SerializeField, Range(1f, 30f)] public float TurnSpeed { get; private set; }
         [field: SerializeField, Range(1f, 200f)] public int MaxStamina { get; private set; }
         [field: SerializeField, Range(0f, 10f)] public float StaminaSprintCost { get; private set; }
         [field: SerializeField, Range(0f, 10f)] public float StaminaRecovery { get; private set; }
         [field: SerializeField, Range(1f, 20f)] public float JumpHeight { get; private set; }
-        [field: SerializeField, Range(1, 100)] public int FallDamagePerHeight { get; private set; }
-        [field: SerializeField, Range(0f, 1f)] public float InAirDrag { get; private set; }
+        // [field: SerializeField, Range(1, 100)] public int FallDamagePerHeight { get; private set; }
+        [field: SerializeField, Range(0f, 5f)] public float InAirDrag { get; private set; }
 
         [field: Header("Look"), Space]
         [field: SerializeField, Range(0.1f, 5f)] public float Sensitivity { get; private set; }
@@ -28,6 +29,12 @@ namespace Views
         [field: SerializeField, Range(0.1f, 25f)] public float HookClimbSpeed { get; private set; }
         [field: SerializeField, Range(0.1f, 25f)] public float HookDescendSpeed { get; private set; }
         [field: SerializeField, Range(0f, 1f)] public float HookMinLength { get; private set; }
+        [field: SerializeField, Range(0f, 10f)] public float HookedRbMass { get; private set; }
+        [field: SerializeField, Range(0f, 10f)] public float HookedRbDrag { get; private set; }
+        [field: SerializeField, Range(0f, 10f)] public float HookedRbAngularDrag { get; private set; }
+        [field: SerializeField, Range(0f, 500f)] public float HookedSpring { get; private set; }
+        [field: SerializeField, Range(0f, 100f)] public float HookedDamper { get; private set; }
+        [field: SerializeField, Range(0f, 50f)] public float HookedMassScale { get; private set; }
         
         [field: Header("Rays"), Space]
         [field: SerializeField, Range(0f, 2f)] public float GroundCheckRayLength { get; private set; }
@@ -62,8 +69,10 @@ namespace Views
         [field: SerializeField] public Material LeftLegMaterial { get; private set; }
         [field: SerializeField] public Material RightLegMaterial { get; private set; }
         [field: SerializeField] public LineRenderer LineRenderer { get; private set; }
-        [field: SerializeField] public LayerMask GroundLayers { get; private set; }
+        [field: SerializeField] public LayerMask WalkableLayers { get; private set; }
 
+        public bool IsHookDebug { get; private set; }
+        
         public Vector3 LeftLegBasePos { get; private set; }
         public Vector3 RightLegBasePos { get; private set; }
         
@@ -128,5 +137,15 @@ namespace Views
             Rb ??= GetComponent<Rigidbody>();
             LineRenderer ??= GetComponent<LineRenderer>();
         }
+
+        [DisableIf("IsHookDebug")]
+        [Button("Enable Hook Debug")]
+        private void EnableHookDebug()
+            => IsHookDebug = true;
+
+        [EnableIf("IsHookDebug")]
+        [Button("Disable Hook Debug")]
+        private void DisableHookDebug()
+            => IsHookDebug = false;
     }
 }
