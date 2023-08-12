@@ -88,7 +88,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4593634320283532830}
-  m_LocalRotation: {x: -0, y: 6.5369923e-12, z: -2.6973976e-12, w: 1}
+  m_LocalRotation: {x: -0, y: 1.101199e-10, z: -4.5440533e-11, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -727,7 +727,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4593634321247801160}
-  m_LocalRotation: {x: 0.19443572, y: 0.000000018864656, z: -0.0000000037393266, w: 0.9809153}
+  m_LocalRotation: {x: 0.19443569, y: -0.000000018876738, z: 0.000000003741721, w: 0.9809153}
   m_LocalPosition: {x: 0, y: 1.55, z: -3.32}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1269,7 +1269,7 @@ MonoBehaviour:
   <LookRangeY>k__BackingField: {x: -90, y: 90}
   <HookRange>k__BackingField: 2
   <HookClimbSpeed>k__BackingField: 0.8
-  <HookDescendSpeed>k__BackingField: 0.5
+  <HookDescendSpeed>k__BackingField: 1
   <HookMinLength>k__BackingField: 0.001
   <HookedRbMass>k__BackingField: 5
   <HookedRbDrag>k__BackingField: 0.5

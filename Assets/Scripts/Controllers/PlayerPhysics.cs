@@ -9,6 +9,8 @@ namespace YellowOrphan.Controllers
     {
         private SpringJoint _joint;
         private Vector3 _hookPoint;
+        
+        private float _currentMaxDistance;
 
         private readonly Rigidbody _rb;
         private readonly PlayerView _view;
@@ -57,9 +59,9 @@ namespace YellowOrphan.Controllers
             _joint.connectedAnchor = target;
             _joint.anchor = _jointAnchor;
 
-            float distance = Vector3.Distance(_rb.transform.position, target);
-
-            _joint.maxDistance = distance * 0.95f;
+            _currentMaxDistance = Vector3.Distance(_rb.transform.position, target) * 0.95f;
+            
+            _joint.maxDistance = _currentMaxDistance;
             _joint.minDistance = _view.HookMinLength;
 
             _joint.spring = _view.HookedSpring;
@@ -78,12 +80,12 @@ namespace YellowOrphan.Controllers
             Object.Destroy(_rb.gameObject.GetComponent<SpringJoint>());
         }
 
-        public void HookDescend(float maxDistance, float speed = 1f)
+        public void HookDescend(float speed = 1f)
         {
             if (_joint == null)
                 return;
             _joint.maxDistance =
-                Mathf.Lerp(_joint.maxDistance, maxDistance, Time.deltaTime * speed);
+                Mathf.Lerp(_joint.maxDistance, _currentMaxDistance, Time.deltaTime * speed);
         }
 
         public void HookClimb(float speed = 1f)

@@ -156,7 +156,7 @@ namespace YellowOrphan.Player
             if (_inputMap.Player.HookClimb.IsPressed())
                 _physics.HookClimb(_view.HookClimbSpeed);
             else if (_inputMap.Player.HookDescend.IsPressed())
-                _physics.HookDescend(_view.HookRange, _view.HookDescendSpeed);
+                _physics.HookDescend(_view.HookDescendSpeed);
 
             CheckSprint();
         }
