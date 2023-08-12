@@ -727,7 +727,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4593634321247801160}
-  m_LocalRotation: {x: 0.19443569, y: -0.00000001887018, z: 0.000000003740421, w: 0.9809153}
+  m_LocalRotation: {x: 0.19443569, y: 0.00000001887018, z: -0.000000003740421, w: 0.9809153}
   m_LocalPosition: {x: 0, y: 1.55, z: -3.32}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1254,24 +1254,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a10c4a3d07154f9dbfed4682b432e317, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  <WalkSpeed>k__BackingField: 5
-  <SprintSpeed>k__BackingField: 10
+  <WalkSpeed>k__BackingField: 3
+  <SprintSpeed>k__BackingField: 5
   <MaxSlopeAngle>k__BackingField: 35
   <MinSlopeAngle>k__BackingField: 2
-  <TurnSpeed>k__BackingField: 5
-  <MaxStamina>k__BackingField: 100
+  <TurnSpeed>k__BackingField: 3
+  <MaxStamina>k__BackingField: 50
   <StaminaSprintCost>k__BackingField: 10
   <StaminaRecovery>k__BackingField: 5
-  <JumpHeight>k__BackingField: 3.6
-  <InAirDrag>k__BackingField: 0.5
+  <JumpHeight>k__BackingField: 3
+  <InAirDrag>k__BackingField: 0.6
   <Sensitivity>k__BackingField: 3
   <LookRangeX>k__BackingField: {x: -60, y: 40}
   <LookRangeY>k__BackingField: {x: -90, y: 90}
-  <HookRangeMax>k__BackingField: 4
-  <HookRangeMin>k__BackingField: 1
-  <HookClimbSpeed>k__BackingField: 0.8
-  <HookDescendSpeed>k__BackingField: 1
-  <HookMinLength>k__BackingField: 0.001
+  <HookRangeMax>k__BackingField: 1.5
+  <HookRangeMin>k__BackingField: 1.1
+  <HookClimbSpeed>k__BackingField: 0.6
+  <HookDescendSpeed>k__BackingField: 0.8
+  <HookMinLength>k__BackingField: 0.008
   <HookedRbMass>k__BackingField: 5
   <HookedRbDrag>k__BackingField: 0.5
   <HookedRbAngularDrag>k__BackingField: 4
