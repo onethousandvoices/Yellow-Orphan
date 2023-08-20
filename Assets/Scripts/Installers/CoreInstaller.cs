@@ -1,5 +1,4 @@
 ﻿using YellowOrphan.Controllers;
-using YellowOrphan.Player;
 using Zenject;
 
 namespace YellowOrphan.Installers

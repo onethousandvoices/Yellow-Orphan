@@ -1,9 +1,8 @@
 ﻿using System;
 using UnityEngine;
 using Views;
-using YellowOrphan.Player;
 
-namespace Controllers
+namespace YellowOrphan.Controllers
 {
     public class PlayerTracks
     {

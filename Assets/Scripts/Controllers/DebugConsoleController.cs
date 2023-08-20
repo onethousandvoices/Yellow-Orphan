@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using UnityEngine;
 using Views.UI;
-using YellowOrphan.Player;
 using YellowOrphan.Utility;
 using Zenject;
 

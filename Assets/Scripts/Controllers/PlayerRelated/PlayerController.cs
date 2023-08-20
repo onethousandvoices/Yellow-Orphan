@@ -1,26 +1,27 @@
-﻿using Controllers;
-using System;
+﻿using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Views;
-using YellowOrphan.Controllers;
 using Zenject;
 
-namespace YellowOrphan.Player
+namespace YellowOrphan.Controllers
 {
     public class PlayerController : IInitializable, ITickable, IFixedTickable, ILateTickable, IPlayerState, IPlayerMotion, IDisposable
     {
         [Inject] private MonoInstance _mono;
         [Inject] private PlayerView _view;
+        [Inject] private HookView _hookView;
         [Inject] private IPlayerStatsUI _playerStatsUI;
         [Inject] private IConsoleHandler _consoleHandler;
+
+        private PlayerPhysics _physics;
+        private PlayerTracks _tracks;
+        private PlayerVFX _vfx;
 
         private Animator _animator;
         private InputMap _inputMap;
         private RaycastHit _groundHit;
         private SphereCollider _sphereCollider;
-        private PlayerPhysics _physics;
-        private PlayerTracks _tracks;
         private Coroutine _rotationNormalizationRoutine;
 
         private Vector2 _move;
@@ -31,7 +32,7 @@ namespace YellowOrphan.Player
         private bool _staminaSpendable = true;
         private bool _airControl;
         private bool _isOnSlope;
-        
+
         private float _jumpTimeoutDelta;
         private float _fallTimeoutDelta;
         private float _fallStartHeight;
@@ -50,7 +51,7 @@ namespace YellowOrphan.Player
         public bool IsAiming { get; private set; }
         public bool IsHooked { get; private set; }
         public bool InputBlocked { get; set; }
-        
+
         public Vector3 InputDirection { get; private set; }
         public float CurrentHorizontalSpeed { get; private set; }
 
@@ -66,6 +67,7 @@ namespace YellowOrphan.Player
 
             _physics = new PlayerPhysics(_view, this);
             _tracks = new PlayerTracks(_view, this, this);
+            _vfx = new PlayerVFX(_hookView);
 
             BindInputs();
         }
@@ -82,7 +84,7 @@ namespace YellowOrphan.Player
             _tracks.AdjustLegs();
             _tracks.RotateTracks();
             _physics.CheckRbState();
-            
+
             // Debug.LogError($"grounded {IsGrounded} hooked {IsHooked} input {InputBlocked} aim {IsAiming}");
         }
 
@@ -93,7 +95,7 @@ namespace YellowOrphan.Player
 
         public void LateTick()
         {
-            _physics.DrawLine();
+            _vfx.CheckHook();
         }
 
         private void BindInputs()
@@ -124,23 +126,25 @@ namespace YellowOrphan.Player
                 return;
 
             Physics.Raycast(_view.HookRayStart.position, _view.HookRayStart.forward, out RaycastHit hit, _view.HookRangeMax);
-            
+
             if (hit.transform == null || hit.distance < _view.HookRangeMin)
                 return;
-            
+
             IsHooked = true;
             _airControl = true;
             _physics.TryHook(hit.point);
+            _vfx.SetHookTarget(hit.point);
         }
 
         private void OnLMBCanceled(InputAction.CallbackContext obj)
         {
             if (_view.IsHookDebug || !IsHooked)
                 return;
-            
+
             IsHooked = false;
             _airControl = false;
             _physics.HookStop();
+            _vfx.SetActive(false);
             _mono.StartCoroutine(_physics.NormalizeRotation(0.3f));
         }
 
@@ -148,7 +152,7 @@ namespace YellowOrphan.Player
         {
             _move = InputBlocked ? Vector2.zero : _inputMap.Player.Move.ReadValue<Vector2>();
             _look = InputBlocked ? Vector2.zero : _inputMap.Player.Look.ReadValue<Vector2>();
-            
+
             if (_inputMap.Player.HookClimb.IsPressed())
                 _physics.HookAscend(_view.HookAscendSpeed);
             else if (_inputMap.Player.HookDescend.IsPressed())
@@ -241,7 +245,7 @@ namespace YellowOrphan.Player
 
             if (IsGrounded || _airControl)
                 _physics.AddForce(velocityChange, ForceMode.Acceleration);
-            
+
             if (_isOnSlope && !IsHooked)
             {
                 if (_slopeAngle >= _view.MaxSlopeAngle)
@@ -249,11 +253,11 @@ namespace YellowOrphan.Player
                 else
                     _physics.AddForce(-_groundHit.transform.up * _view.PossibleSlopeDownwardForce, ForceMode.Force);
             }
-            
+
             if (InputDirection.magnitude > 0 && IsGrounded)
-                _view.transform.rotation = 
+                _view.transform.rotation =
                     Quaternion.Lerp(_view.transform.rotation, Quaternion.LookRotation(velocityChange), Time.fixedDeltaTime * _view.TurnSpeed);
-            
+
             _animator.SetFloat(_speedBlendHash, _physics.Velocity.magnitude);
         }
 
@@ -268,13 +272,13 @@ namespace YellowOrphan.Player
             Debug.DrawRay(rayStart, -_view.transform.up * _view.GroundCheckRayLength, Color.green);
             // Debug.LogError($"grounded {IsGrounded} slope {_isOnSlope} slopeAngle {_slopeAngle}");
 #endif
-            
+
             if (_groundHit.transform != null)
                 _slopeAngle = Vector3.Angle(_view.transform.up, _groundHit.normal);
 
             IsGrounded = _groundHit.transform != null && _groundHit.distance < _view.GroundCheckMinDistance;
             _isOnSlope = _groundHit.transform != null && IsGrounded && Mathf.Abs(_slopeAngle) > _view.MinSlopeAngle;
-            
+
             if (!IsHooked)
                 _physics.SetGravity(!_isOnSlope);
 
@@ -325,7 +329,7 @@ namespace YellowOrphan.Player
         {
             if (_look.sqrMagnitude == 0f || !IsAiming || IsHooked)
                 return;
-            
+
             Vector3 angles = _view.HeadTarget.transform.localEulerAngles + new Vector3(_look.y, _look.x, 0f) * _view.Sensitivity;
 
             angles.x = angles.x > 180 ? angles.x - 360 : angles.x;
@@ -342,7 +346,7 @@ namespace YellowOrphan.Player
     {
         public float CurrentSpeed { get; }
         public float CurrentStamina { get; }
-        
+
         public bool IsGrounded { get; }
         public bool IsAiming { get; }
         public bool IsHooked { get; }
@@ -351,7 +355,7 @@ namespace YellowOrphan.Player
 
     public interface IPlayerMotion
     {
-        public Vector3 InputDirection{ get; }
+        public Vector3 InputDirection { get; }
         public float CurrentHorizontalSpeed { get; }
     }
 }

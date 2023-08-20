@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using UnityEngine;
 using Views;
-using YellowOrphan.Player;
 
 namespace YellowOrphan.Controllers
 {
@@ -135,18 +134,6 @@ namespace YellowOrphan.Controllers
             _rb.MoveRotation(target);
             _rb.constraints = _rbConstraints;
             _playerState.InputBlocked = false;
-        }
-        
-        public void DrawLine()
-        {
-            if (!_playerState.IsHooked)
-            {
-                _view.LineRenderer.SetPosition(0, _view.HookRayStart.position);
-                _view.LineRenderer.SetPosition(1, _view.HookRayStart.position);
-                return;
-            }
-            _view.LineRenderer.SetPosition(0, _view.HookRayStart.position);
-            _view.LineRenderer.SetPosition(1, _hookPoint);
         }
     }
 }
