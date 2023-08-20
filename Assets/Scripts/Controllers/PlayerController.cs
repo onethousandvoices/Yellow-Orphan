@@ -252,7 +252,7 @@ namespace YellowOrphan.Player
             
             if (InputDirection.magnitude > 0 && IsGrounded)
                 _view.transform.rotation = 
-                    Quaternion.Slerp(_view.transform.rotation, Quaternion.LookRotation(velocityChange), Time.fixedDeltaTime * _view.TurnSpeed);
+                    Quaternion.Lerp(_view.transform.rotation, Quaternion.LookRotation(velocityChange), Time.fixedDeltaTime * _view.TurnSpeed);
             
             _animator.SetFloat(_speedBlendHash, _physics.Velocity.magnitude);
         }
