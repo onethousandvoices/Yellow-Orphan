@@ -109,6 +109,15 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
+                    ""name"": ""ArrowDown"",
+                    ""type"": ""Button"",
+                    ""id"": ""5aae5f5c-a593-4d0a-815f-3c03c75fe1cc"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
                     ""name"": ""LMB"",
                     ""type"": ""Button"",
                     ""id"": ""9e24ed54-256e-40b5-937a-4de491a8e230"",
@@ -440,6 +449,17 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                     ""action"": ""HookClimb"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""abd3d0bc-ec21-470d-9d92-74c5d00cd3fa"",
+                    ""path"": ""<Keyboard>/downArrow"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ArrowDown"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -505,6 +525,7 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
         m_Player_Console = m_Player.FindAction("Console", throwIfNotFound: true);
         m_Player_ReturnButton = m_Player.FindAction("ReturnButton", throwIfNotFound: true);
         m_Player_ArrowUp = m_Player.FindAction("ArrowUp", throwIfNotFound: true);
+        m_Player_ArrowDown = m_Player.FindAction("ArrowDown", throwIfNotFound: true);
         m_Player_LMB = m_Player.FindAction("LMB", throwIfNotFound: true);
         m_Player_RMB = m_Player.FindAction("RMB", throwIfNotFound: true);
         m_Player_PickButton = m_Player.FindAction("PickButton", throwIfNotFound: true);
@@ -578,6 +599,7 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Console;
     private readonly InputAction m_Player_ReturnButton;
     private readonly InputAction m_Player_ArrowUp;
+    private readonly InputAction m_Player_ArrowDown;
     private readonly InputAction m_Player_LMB;
     private readonly InputAction m_Player_RMB;
     private readonly InputAction m_Player_PickButton;
@@ -596,6 +618,7 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
         public InputAction @Console => m_Wrapper.m_Player_Console;
         public InputAction @ReturnButton => m_Wrapper.m_Player_ReturnButton;
         public InputAction @ArrowUp => m_Wrapper.m_Player_ArrowUp;
+        public InputAction @ArrowDown => m_Wrapper.m_Player_ArrowDown;
         public InputAction @LMB => m_Wrapper.m_Player_LMB;
         public InputAction @RMB => m_Wrapper.m_Player_RMB;
         public InputAction @PickButton => m_Wrapper.m_Player_PickButton;
@@ -637,6 +660,9 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                 @ArrowUp.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnArrowUp;
                 @ArrowUp.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnArrowUp;
                 @ArrowUp.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnArrowUp;
+                @ArrowDown.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnArrowDown;
+                @ArrowDown.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnArrowDown;
+                @ArrowDown.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnArrowDown;
                 @LMB.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnLMB;
                 @LMB.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnLMB;
                 @LMB.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnLMB;
@@ -683,6 +709,9 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                 @ArrowUp.started += instance.OnArrowUp;
                 @ArrowUp.performed += instance.OnArrowUp;
                 @ArrowUp.canceled += instance.OnArrowUp;
+                @ArrowDown.started += instance.OnArrowDown;
+                @ArrowDown.performed += instance.OnArrowDown;
+                @ArrowDown.canceled += instance.OnArrowDown;
                 @LMB.started += instance.OnLMB;
                 @LMB.performed += instance.OnLMB;
                 @LMB.canceled += instance.OnLMB;
@@ -749,6 +778,7 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
         void OnConsole(InputAction.CallbackContext context);
         void OnReturnButton(InputAction.CallbackContext context);
         void OnArrowUp(InputAction.CallbackContext context);
+        void OnArrowDown(InputAction.CallbackContext context);
         void OnLMB(InputAction.CallbackContext context);
         void OnRMB(InputAction.CallbackContext context);
         void OnPickButton(InputAction.CallbackContext context);

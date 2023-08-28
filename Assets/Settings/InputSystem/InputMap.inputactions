@@ -87,6 +87,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "ArrowDown",
+                    "type": "Button",
+                    "id": "5aae5f5c-a593-4d0a-815f-3c03c75fe1cc",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "LMB",
                     "type": "Button",
                     "id": "9e24ed54-256e-40b5-937a-4de491a8e230",
@@ -416,6 +425,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "HookClimb",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "abd3d0bc-ec21-470d-9d92-74c5d00cd3fa",
+                    "path": "<Keyboard>/downArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ArrowDown",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using Views.UI;
-using YellowOrphan.Utility;
 using Zenject;
+using Object = UnityEngine.Object;
 
 namespace YellowOrphan.Controllers
 {
@@ -15,13 +17,17 @@ namespace YellowOrphan.Controllers
         [Inject] private IPlayerState _playerState;
 
         private List<DebugCommandBase> _commands;
+        private readonly List<Button> _options = new List<Button>();
         private readonly List<string> _previousCommands = new List<string>();
-        private int _commandsPointer;
+        private int _commandsPointer = -1;
+        private int _optionsPointer = -1;
 
         public bool ConsoleShown => _view.ConsoleShown;
-        
+
         public void Initialize()
         {
+            _view.InputField.onValueChanged.AddListener(CreateOptions);
+
             DebugCommand help = new DebugCommand("help", "List of all commands", Help);
             DebugCommand testException = new DebugCommand("exception", "Test exception", TestException);
             DebugCommand<int> setFps = new DebugCommand<int>("fps_", "Set fps (0 - uncapped)", FrameRateChange);
@@ -36,18 +42,54 @@ namespace YellowOrphan.Controllers
             };
         }
 
-        private void HandeInput()
+        private void CreateOptions(string text)
         {
-            if (!_view.ConsoleShown)
-                return;
+            ClearOptions();
 
-            if (!string.IsNullOrEmpty(_view.Input)) 
-                _previousCommands.Add(_view.Input);
-            string properties = string.Concat(_view.Input.SkipWhile(x => x != '_').Skip(1));
+            if (string.IsNullOrEmpty(text))
+                return;
 
             foreach (DebugCommandBase command in _commands)
             {
-                if (!_view.Input.Contains(command.Id))
+                if (!command.Id.ToLower().Contains(text.ToLower()))
+                    continue;
+
+                Button newOption = Object.Instantiate(_view.OptionPrefab, _view.OptionPrefab.transform.parent);
+                newOption.GetComponentInChildren<TextMeshProUGUI>().text = command.Id;
+                newOption.onClick.AddListener(() =>
+                {
+                    _view.SetInput(command.Id);
+                    _view.Options.SetActive(false);
+                });
+                newOption.gameObject.SetActive(true);
+                _options.Add(newOption);
+            }
+
+            _view.Options.SetActive(_options.Count > 0);
+        }
+
+        private void ClearOptions()
+        {
+            foreach (Button button in _options)
+                Object.Destroy(button.gameObject);
+
+            _options.Clear();
+        }
+
+        private void HandeInput()
+        {
+            if (!_view.ConsoleShown || string.IsNullOrEmpty(_view.InputField.text))
+                return;
+
+            string inputText = _view.InputField.text.ToLower();
+
+            _previousCommands.Add(inputText);
+
+            string properties = string.Concat(inputText.SkipWhile(x => x != '_').Skip(1));
+
+            foreach (DebugCommandBase command in _commands)
+            {
+                if (!inputText.Contains(command.Id.ToLower()))
                     continue;
 
                 switch (command)
@@ -56,10 +98,12 @@ namespace YellowOrphan.Controllers
                         debugCommand.Invoke();
                         break;
                     case DebugCommand<int> debugCommandInt:
-                        debugCommandInt.Invoke(int.Parse(properties));
+                        int.TryParse(properties, out int intResult);
+                        debugCommandInt.Invoke(intResult);
                         break;
                     case DebugCommand<float> debugCommandFloat:
-                        debugCommandFloat.Invoke(float.Parse(properties, CultureInfo.InvariantCulture.NumberFormat));
+                        float.TryParse(properties, NumberStyles.Any, CultureInfo.InvariantCulture.NumberFormat, out float floatResult);
+                        debugCommandFloat.Invoke(floatResult);
                         break;
                     case DebugCommand<string> debugCommandString:
                         debugCommandString.Invoke(properties);
@@ -87,11 +131,7 @@ namespace YellowOrphan.Controllers
                     color = Color.red;
                     break;
             }
-
-            IEnumerable<string> splitInParts = condition.SplitInParts(_view.LoggedStringWidth);
-
-            foreach (string s in splitInParts)
-                _view.Log(new LoggedString(s, color));
+            _view.Log(new LoggedString(condition, color));
         }
 
         private void Help()
@@ -111,11 +151,13 @@ namespace YellowOrphan.Controllers
             Time.timeScale = time;
             Debug.Log($"Time scale set to {time}");
         }
-        
+
         public void ShowConsole()
         {
             _view.ResetInput();
             _playerState.InputBlocked = _view.UpdateConsoleState();
+            _commandsPointer = -1;
+            _optionsPointer = -1;
         }
 
         public void SubscribeToLog()
@@ -123,25 +165,70 @@ namespace YellowOrphan.Controllers
 
         public void OnReturn()
         {
+            if (!string.IsNullOrEmpty(_view.InputField.text) && _optionsPointer > -1)
+            {
+                _options[_optionsPointer].onClick.Invoke();
+                _optionsPointer = -1;
+                return;
+            }
+            
             HandeInput();
             _view.ResetInput();
             _commandsPointer = -1;
+            _optionsPointer = -1;
         }
 
         public void OnUpArrow()
         {
+            if (_optionsPointer > -1)
+            {
+                _optionsPointer--;
+
+                if (_optionsPointer < 0)
+                    _optionsPointer = -1;
+                
+                HighlightOption();
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(_view.InputField.text) || _previousCommands.Count < 1)
+                return;
+            
             switch (_commandsPointer)
             {
                 case -1:
                     _commandsPointer = _previousCommands.Count - 1;
                     break;
                 case 0:
-                    return;
+                    break;
                 default:
                     _commandsPointer--;
                     break;
             }
             _view.SetInput(_previousCommands[_commandsPointer]);
+        }
+
+        public void OnDownArrow()
+        {
+            _optionsPointer++;
+            
+            if (_optionsPointer >= _options.Count)
+                _optionsPointer = _options.Count - 1;
+
+            HighlightOption();
+        }
+
+        private void HighlightOption()
+        {
+            for (int i = 0; i < _options.Count; i++)
+            {
+                if (i != _optionsPointer)
+                {
+                    _options[i].GetComponent<Image>().color = _view.OptionPrefab.GetComponent<Image>().color;
+                    continue;
+                }
+                _options[i].GetComponent<Image>().color = _view.OptionPrefab.colors.selectedColor;
+            }
         }
 
         public void AddCommand(DebugCommandBase commandBase)
@@ -156,6 +243,7 @@ namespace YellowOrphan.Controllers
         public void SubscribeToLog();
         public void OnReturn();
         public void OnUpArrow();
+        public void OnDownArrow();
         public void AddCommand(DebugCommandBase commandBase);
     }
 
@@ -179,7 +267,16 @@ namespace YellowOrphan.Controllers
             => _command = command;
 
         public void Invoke(T value)
-            => _command?.Invoke(value);
+        {
+            try
+            {
+                _command?.Invoke(value);
+            }
+            catch (Exception)
+            {
+                Debug.LogError("Something went wrong...");
+            }
+        }
     }
 
     public class DebugCommand : DebugCommandBase
@@ -190,6 +287,15 @@ namespace YellowOrphan.Controllers
             => _command = command;
 
         public void Invoke()
-            => _command?.Invoke();
+        {
+            try
+            {
+                _command?.Invoke();
+            }
+            catch (Exception)
+            {
+                Debug.LogError("Something went wrong...");
+            }
+        }
     }
 }

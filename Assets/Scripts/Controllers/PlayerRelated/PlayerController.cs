@@ -112,6 +112,7 @@ namespace YellowOrphan.Controllers
             _inputMap.Player.Console.performed += _ => _consoleHandler.ShowConsole();
             _inputMap.Player.ReturnButton.performed += _ => _consoleHandler.OnReturn();
             _inputMap.Player.ArrowUp.performed += _ => _consoleHandler.OnUpArrow();
+            _inputMap.Player.ArrowDown.performed += _ => _consoleHandler.OnDownArrow();
         }
 
         private void OnRMBStarted(InputAction.CallbackContext obj)
