@@ -51,14 +51,14 @@ namespace YellowOrphan.Controllers
 
             foreach (DebugCommandBase command in _commands)
             {
-                if (!command.Id.ToLower().Contains(text.ToLower()))
+                if (!command.Format.ToLower().StartsWith(text.ToLower()))
                     continue;
 
                 Button newOption = Object.Instantiate(_view.OptionPrefab, _view.OptionPrefab.transform.parent);
-                newOption.GetComponentInChildren<TextMeshProUGUI>().text = command.Id;
+                newOption.GetComponentInChildren<TextMeshProUGUI>().text = command.Format;
                 newOption.onClick.AddListener(() =>
                 {
-                    _view.SetInput(command.Id);
+                    _view.SetInput(command.Format);
                     _view.Options.SetActive(false);
                 });
                 newOption.gameObject.SetActive(true);
@@ -89,7 +89,7 @@ namespace YellowOrphan.Controllers
 
             foreach (DebugCommandBase command in _commands)
             {
-                if (!inputText.Contains(command.Id.ToLower()))
+                if (!inputText.Contains(command.Format.ToLower()))
                     continue;
 
                 switch (command)
@@ -132,24 +132,6 @@ namespace YellowOrphan.Controllers
                     break;
             }
             _view.Log(new LoggedString(condition, color));
-        }
-
-        private void Help()
-            => _view.Log(_commands.Select(x => new LoggedString($"{x.Id} - {x.Description}", Color.green)).ToArray());
-
-        private static void TestException()
-            => throw new Exception("TEST EXCEPTION");
-
-        private static void FrameRateChange(int fps)
-        {
-            Application.targetFrameRate = fps;
-            Debug.Log($"Fps set to {Application.targetFrameRate}");
-        }
-
-        private static void TimeScaleChange(float time)
-        {
-            Time.timeScale = time;
-            Debug.Log($"Time scale set to {time}");
         }
 
         public void ShowConsole()
@@ -233,6 +215,24 @@ namespace YellowOrphan.Controllers
 
         public void AddCommand(DebugCommandBase commandBase)
             => _commands.Add(commandBase);
+        
+        private void Help()
+            => _view.Log(_commands.Select(x => new LoggedString($"{x.Format} - {x.Description}", Color.green)).ToArray());
+
+        private static void TestException()
+            => throw new Exception("TEST EXCEPTION");
+
+        private static void FrameRateChange(int fps)
+        {
+            Application.targetFrameRate = fps;
+            Debug.Log($"Fps set to {Application.targetFrameRate}");
+        }
+
+        private static void TimeScaleChange(float time)
+        {
+            Time.timeScale = time;
+            Debug.Log($"Time scale set to {time}");
+        }
     }
 
     public interface IConsoleHandler
@@ -249,12 +249,12 @@ namespace YellowOrphan.Controllers
 
     public abstract class DebugCommandBase
     {
-        public readonly string Id;
+        public readonly string Format;
         public readonly string Description;
 
-        protected DebugCommandBase(string id, string description)
+        protected DebugCommandBase(string format, string description)
         {
-            Id = id;
+            Format = format;
             Description = description;
         }
     }
@@ -263,7 +263,7 @@ namespace YellowOrphan.Controllers
     {
         private readonly Action<T> _command;
 
-        public DebugCommand(string id, string description, Action<T> command) : base(id, description)
+        public DebugCommand(string format, string description, Action<T> command) : base(format, description)
             => _command = command;
 
         public void Invoke(T value)
@@ -283,7 +283,7 @@ namespace YellowOrphan.Controllers
     {
         private readonly Action _command;
 
-        public DebugCommand(string id, string description, Action command) : base(id, description)
+        public DebugCommand(string format, string description, Action command) : base(format, description)
             => _command = command;
 
         public void Invoke()

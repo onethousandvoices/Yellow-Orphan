@@ -32,6 +32,7 @@ namespace YellowOrphan.Controllers
         private bool _staminaSpendable = true;
         private bool _airControl;
         private bool _isOnSlope;
+        private bool _isLookSwitched;
 
         private float _jumpTimeoutDelta;
         private float _fallTimeoutDelta;
@@ -48,7 +49,7 @@ namespace YellowOrphan.Controllers
         public float CurrentSpeed { get; private set; }
         public float CurrentStamina { get; private set; }
         public bool IsGrounded { get; private set; } = true;
-        public bool IsAiming { get; private set; }
+        public bool IsAiming { get; private set; } = true;
         public bool IsHooked { get; private set; }
         public bool InputBlocked { get; set; }
 
@@ -69,6 +70,14 @@ namespace YellowOrphan.Controllers
             _tracks = new PlayerTracks(_view, this, this);
             _vfx = new PlayerVFX(_hookView);
 
+            _consoleHandler.AddCommand(
+                new DebugCommand("lookSwitch", "Switch look to hold mode", () =>
+                {
+                    IsAiming = _isLookSwitched;
+                    _isLookSwitched = !_isLookSwitched;
+                    Debug.Log($"Look is now switched to {(_isLookSwitched ? "toggle" : "auto")}");
+                }));
+            
             BindInputs();
         }
 
@@ -116,10 +125,16 @@ namespace YellowOrphan.Controllers
         }
 
         private void OnRMBStarted(InputAction.CallbackContext obj)
-            => IsAiming = true;
+        {
+            if (_isLookSwitched)
+                IsAiming = true;
+        }
 
         private void OnRMBCanceled(InputAction.CallbackContext obj)
-            => IsAiming = false;
+        {
+            if (_isLookSwitched)
+                IsAiming = false;
+        }
 
         private void OnLMBStarted(InputAction.CallbackContext obj)
         {
