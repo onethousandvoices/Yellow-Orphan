@@ -85,7 +85,7 @@ namespace YellowOrphan.Controllers
 
             _previousCommands.Add(inputText);
 
-            string properties = string.Concat(inputText.SkipWhile(x => x != '_').Skip(1));
+            string properties = string.Concat(inputText.SkipWhile(c => c != '_').Skip(1));
 
             foreach (DebugCommandBase command in _commands)
             {
