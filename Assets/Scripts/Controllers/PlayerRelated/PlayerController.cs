@@ -1,18 +1,19 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using VContainer;
+using VContainer.Unity;
 using Views;
-using Zenject;
 
 namespace YellowOrphan.Controllers
 {
-    public class PlayerController : IInitializable, ITickable, IFixedTickable, ILateTickable, IPlayerState, IPlayerMotion, IDisposable
+    public class PlayerController : IStartable, ITickable, IFixedTickable, ILateTickable, IPlayerState, IPlayerMotion, IDisposable
     {
-        [Inject] private MonoInstance _mono;
-        [Inject] private PlayerView _view;
-        [Inject] private HookView _hookView;
-        [Inject] private IPlayerStatsUI _playerStatsUI;
-        [Inject] private IConsoleHandler _consoleHandler;
+        [Inject] private readonly MonoInstance _mono;
+        [Inject] private readonly PlayerView _view;
+        [Inject] private readonly HookView _hookView;
+        [Inject] private readonly IPlayerStatsUI _playerStatsUI;
+        [Inject] private readonly IConsoleHandler _consoleHandler;
 
         private PlayerPhysics _physics;
         private PlayerTracks _tracks;
@@ -43,6 +44,7 @@ namespace YellowOrphan.Controllers
         private const float _slowDownChangeRate = 20f;
         private const float _jumpTimeout = 0.01f;
         private const float _fallTimeout = 0.05f;
+        private const float _rotationNormalizationSpeed = 0.3f;
 
         private static readonly int _speedBlendHash = Animator.StringToHash("SpeedBlend");
 
@@ -56,7 +58,7 @@ namespace YellowOrphan.Controllers
         public Vector3 InputDirection { get; private set; }
         public float CurrentHorizontalSpeed { get; private set; }
 
-        public void Initialize()
+        public void Start()
         {
             _jumpTimeoutDelta = _jumpTimeout;
             _fallTimeoutDelta = _fallTimeout;
@@ -68,8 +70,15 @@ namespace YellowOrphan.Controllers
 
             _physics = new PlayerPhysics(_view, this);
             _tracks = new PlayerTracks(_view, this, this);
-            _vfx = new PlayerVFX(_hookView);
+            _vfx = new PlayerVFX(_view, _hookView);
 
+            _vfx.SetOnSuccessHook(hitPoint =>
+            {
+                IsHooked = true;
+                _airControl = true;
+                _physics.TryHook(hitPoint);
+            });
+            
             _consoleHandler.AddCommand(
                 new DebugCommand("lookSwitch", "Switch look to hold mode", () =>
                 {
@@ -118,7 +127,7 @@ namespace YellowOrphan.Controllers
             _inputMap.Player.RMB.started += OnRMBStarted;
             _inputMap.Player.RMB.canceled += OnRMBCanceled;
 
-            _inputMap.Player.Console.performed += _ => _consoleHandler.ShowConsole();
+            _inputMap.Player.Console.performed += _ => _consoleHandler.ShowConsole(this);
             _inputMap.Player.ReturnButton.performed += _ => _consoleHandler.OnReturn();
             _inputMap.Player.ArrowUp.performed += _ => _consoleHandler.OnUpArrow();
             _inputMap.Player.ArrowDown.performed += _ => _consoleHandler.OnDownArrow();
@@ -141,27 +150,20 @@ namespace YellowOrphan.Controllers
             if (!IsAiming || InputBlocked)
                 return;
 
-            Physics.Raycast(_view.HookRayStart.position, _view.HookRayStart.forward, out RaycastHit hit, _view.HookRangeMax);
-
-            if (hit.transform == null || hit.distance < _view.HookRangeMin)
-                return;
-
-            IsHooked = true;
-            _airControl = true;
-            _physics.TryHook(hit.point);
-            _vfx.SetHookTarget(hit.point);
+            _vfx.TryHook();
         }
 
         private void OnLMBCanceled(InputAction.CallbackContext obj)
         {
-            if (_view.IsHookDebug || !IsHooked)
+            if (_view.IsHookDebug)
                 return;
 
             IsHooked = false;
             _airControl = false;
             _physics.HookStop();
             _vfx.SetActive(false);
-            _mono.StartCoroutine(_physics.NormalizeRotation(0.3f));
+            _mono.StartCoroutine(
+                _physics.NormalizeRotation(_rotationNormalizationSpeed));
         }
 
         private void ReadInput()

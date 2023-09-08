@@ -1,17 +1,18 @@
 ﻿using System;
 using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 using Views.UI;
-using Zenject;
 
 namespace YellowOrphan.Controllers
 {
-    public class GameController : IInitializable
+    public class GameController : IStartable
     {
-        [Inject] private IConsoleHandler _consoleHandler;
-        [Inject] private ITimeTickable _timeTickable;
-        [Inject] private CMDebugCamera _cmDebugCamera;
+        [Inject] private readonly IConsoleHandler _consoleHandler;
+        [Inject] private readonly ITimeTickable _timeTickable;
+        [Inject] private readonly CMDebugCamera _cmDebugCamera;
 
-        public void Initialize()
+        public void Start()
         {
             _consoleHandler.SubscribeToLog();
             _timeTickable.AddTickable(0.01f, CheckCursor);

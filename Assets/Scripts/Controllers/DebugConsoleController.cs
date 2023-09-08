@@ -5,16 +5,16 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
+using VContainer.Unity;
 using Views.UI;
-using Zenject;
 using Object = UnityEngine.Object;
 
 namespace YellowOrphan.Controllers
 {
-    public class DebugConsoleController : IInitializable, IConsoleHandler
+    public class DebugConsoleController : IStartable, IConsoleHandler
     {
-        [Inject] private DebugConsoleView _view;
-        [Inject] private IPlayerState _playerState;
+        [Inject] private readonly DebugConsoleView _view;
 
         private List<DebugCommandBase> _commands;
         private readonly List<Button> _options = new List<Button>();
@@ -24,7 +24,7 @@ namespace YellowOrphan.Controllers
 
         public bool ConsoleShown => _view.ConsoleShown;
 
-        public void Initialize()
+        public void Start()
         {
             _view.InputField.onValueChanged.AddListener(CreateOptions);
 
@@ -134,12 +134,12 @@ namespace YellowOrphan.Controllers
             _view.Log(new LoggedString(condition, color));
         }
 
-        public void ShowConsole()
+        public void ShowConsole(IPlayerState playerState)
         {
             _view.ResetInput();
-            _playerState.InputBlocked = _view.UpdateConsoleState();
             _commandsPointer = -1;
             _optionsPointer = -1;
+            playerState.InputBlocked = _view.UpdateConsoleState();
         }
 
         public void SubscribeToLog()
@@ -239,7 +239,7 @@ namespace YellowOrphan.Controllers
     {
         public bool ConsoleShown { get; }
         
-        public void ShowConsole();
+        public void ShowConsole(IPlayerState playerState);
         public void SubscribeToLog();
         public void OnReturn();
         public void OnUpArrow();

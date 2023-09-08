@@ -29,6 +29,7 @@ namespace Views
         [field: SerializeField, Range(0.1f, 2f)] public float HookRangeMin { get; private set; }
         [field: SerializeField, Range(0.1f, 25f)] public float HookAscendSpeed { get; private set; }
         [field: SerializeField, Range(0.1f, 25f)] public float HookDescendSpeed { get; private set; }
+        [field: SerializeField, Range(1f, 50f)] public float HookFlySpeed { get; private set; }
         [field: SerializeField, Range(0f, 1f)] public float HookMinLength { get; private set; }
         [field: SerializeField, Range(0f, 10f)] public float HookedRbMass { get; private set; }
         [field: SerializeField, Range(0f, 10f)] public float HookedRbDrag { get; private set; }
@@ -69,7 +70,6 @@ namespace Views
         [field: SerializeField] public PhysicMaterial FrictionMaterial { get; private set; }
         [field: SerializeField] public MeshRenderer LeftLegRenderer { get; private set; }
         [field: SerializeField] public MeshRenderer RightLegRenderer { get; private set; }
-        [field: SerializeField] public LineRenderer LineRenderer { get; private set; }
         [field: SerializeField] public LayerMask WalkableLayers { get; private set; }
 
         [field: SerializeField, HideInInspector] public bool IsHookDebug { get; private set; }
@@ -138,7 +138,6 @@ namespace Views
 
             Animator ??= GetComponent<Animator>();
             Rb ??= GetComponent<Rigidbody>();
-            LineRenderer ??= GetComponent<LineRenderer>();
         }
 
         [DisableIf("IsHookDebug")]

@@ -1,16 +1,17 @@
 ﻿using Tayx.Graphy;
+using VContainer;
+using VContainer.Unity;
 using Views.UI;
-using Zenject;
 
 namespace YellowOrphan.Controllers
 {
-    public class UIController : IInitializable, IPlayerStatsUI
+    public class UIController : IStartable, IPlayerStatsUI
     {
-        [Inject] private PlayerStatsView _playerStatsView;
-        [Inject] private GraphyManager _graphy;
-        [Inject] private IConsoleHandler _console;
+        [Inject] private readonly PlayerStatsView _playerStatsView;
+        [Inject] private readonly GraphyManager _graphy;
+        [Inject] private readonly IConsoleHandler _console;
 
-        public void Initialize()
+        public void Start()
         {
             _console.AddCommand(new DebugCommand("stats", "Toggle stats", () =>
             {
