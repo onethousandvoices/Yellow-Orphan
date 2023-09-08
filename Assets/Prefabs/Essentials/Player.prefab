@@ -854,6 +854,7 @@ MonoBehaviour:
   <StaminaSprintCost>k__BackingField: 10
   <StaminaRecovery>k__BackingField: 5
   <JumpHeight>k__BackingField: 3
+  <FallDamagePerHeight>k__BackingField: 1
   <InAirDrag>k__BackingField: 0.6
   <Sensitivity>k__BackingField: 2
   <LookRangeX>k__BackingField: {x: -60, y: 40}
@@ -886,8 +887,9 @@ MonoBehaviour:
   <LeftLegBottom>k__BackingField: {fileID: 958162182364179866}
   <RightLegBottom>k__BackingField: {fileID: 958162181871267484}
   <HeadTarget>k__BackingField: {fileID: 958162182108636117}
-  <Animator>k__BackingField: {fileID: 958162182241719231}
   <Rb>k__BackingField: {fileID: 958162183843005432}
+  <Animator>k__BackingField: {fileID: 958162182241719231}
+  <Renderer>k__BackingField: {fileID: 4523702993152334357}
   <SlipperyMaterial>k__BackingField: {fileID: 13400000, guid: 52eca62df99a91040b9c19b6a6a1a559,
     type: 2}
   <FrictionMaterial>k__BackingField: {fileID: 13400000, guid: eb385382919f7324fa9255bcd69e4c17,
@@ -2002,6 +2004,12 @@ Transform:
 --- !u!23 &4099807791824555764 stripped
 MeshRenderer:
   m_CorrespondingSourceObject: {fileID: 3866729621478169924, guid: 1840149f61d00fa4d975088960da0525,
+    type: 3}
+  m_PrefabInstance: {fileID: 958162182241719216}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &4523702993152334357 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3714194851891005861, guid: 1840149f61d00fa4d975088960da0525,
     type: 3}
   m_PrefabInstance: {fileID: 958162182241719216}
   m_PrefabAsset: {fileID: 0}

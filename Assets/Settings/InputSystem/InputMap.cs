@@ -161,6 +161,15 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""FlashlightToggle"",
+                    ""type"": ""Button"",
+                    ""id"": ""d2c24e25-f63e-4a71-af8c-57702dee5943"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -460,6 +469,17 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                     ""action"": ""ArrowDown"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""556e62e5-3cd7-47fa-98bf-482a8519ba7d"",
+                    ""path"": ""<Keyboard>/f"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""FlashlightToggle"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -531,6 +551,7 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
         m_Player_PickButton = m_Player.FindAction("PickButton", throwIfNotFound: true);
         m_Player_HookDescend = m_Player.FindAction("HookDescend", throwIfNotFound: true);
         m_Player_HookClimb = m_Player.FindAction("HookClimb", throwIfNotFound: true);
+        m_Player_FlashlightToggle = m_Player.FindAction("FlashlightToggle", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -605,6 +626,7 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_PickButton;
     private readonly InputAction m_Player_HookDescend;
     private readonly InputAction m_Player_HookClimb;
+    private readonly InputAction m_Player_FlashlightToggle;
     public struct PlayerActions
     {
         private @InputMap m_Wrapper;
@@ -624,6 +646,7 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
         public InputAction @PickButton => m_Wrapper.m_Player_PickButton;
         public InputAction @HookDescend => m_Wrapper.m_Player_HookDescend;
         public InputAction @HookClimb => m_Wrapper.m_Player_HookClimb;
+        public InputAction @FlashlightToggle => m_Wrapper.m_Player_FlashlightToggle;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -678,6 +701,9 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                 @HookClimb.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnHookClimb;
                 @HookClimb.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnHookClimb;
                 @HookClimb.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnHookClimb;
+                @FlashlightToggle.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnFlashlightToggle;
+                @FlashlightToggle.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnFlashlightToggle;
+                @FlashlightToggle.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnFlashlightToggle;
             }
             m_Wrapper.m_PlayerActionsCallbackInterface = instance;
             if (instance != null)
@@ -727,6 +753,9 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
                 @HookClimb.started += instance.OnHookClimb;
                 @HookClimb.performed += instance.OnHookClimb;
                 @HookClimb.canceled += instance.OnHookClimb;
+                @FlashlightToggle.started += instance.OnFlashlightToggle;
+                @FlashlightToggle.performed += instance.OnFlashlightToggle;
+                @FlashlightToggle.canceled += instance.OnFlashlightToggle;
             }
         }
     }
@@ -784,5 +813,6 @@ public partial class @InputMap : IInputActionCollection2, IDisposable
         void OnPickButton(InputAction.CallbackContext context);
         void OnHookDescend(InputAction.CallbackContext context);
         void OnHookClimb(InputAction.CallbackContext context);
+        void OnFlashlightToggle(InputAction.CallbackContext context);
     }
 }

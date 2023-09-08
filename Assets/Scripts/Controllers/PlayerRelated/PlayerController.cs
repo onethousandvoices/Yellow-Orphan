@@ -34,11 +34,13 @@ namespace YellowOrphan.Controllers
         private bool _airControl;
         private bool _isOnSlope;
         private bool _isLookSwitched;
+        private bool _eyesHighlighted;
 
         private float _jumpTimeoutDelta;
         private float _fallTimeoutDelta;
         private float _fallStartHeight;
         private float _slopeAngle;
+        private float _playerHeight;
 
         private const float _speedUpChangeRate = 30f;
         private const float _slowDownChangeRate = 20f;
@@ -47,6 +49,7 @@ namespace YellowOrphan.Controllers
         private const float _rotationNormalizationSpeed = 0.3f;
 
         private static readonly int _speedBlendHash = Animator.StringToHash("SpeedBlend");
+        private static readonly int _emissionPower = Shader.PropertyToID("_Emission_power");
 
         public float CurrentSpeed { get; private set; }
         public float CurrentStamina { get; private set; }
@@ -60,17 +63,19 @@ namespace YellowOrphan.Controllers
 
         public void Start()
         {
-            _jumpTimeoutDelta = _jumpTimeout;
-            _fallTimeoutDelta = _fallTimeout;
-
-            CurrentStamina = _view.MaxStamina;
-
             _sphereCollider = _view.GetComponent<SphereCollider>();
+            _playerHeight = _sphereCollider.radius * 2;
+
             _animator = _view.Animator;
+
+            _fallTimeoutDelta = _fallTimeout;
+            _jumpTimeoutDelta = _jumpTimeout;
 
             _physics = new PlayerPhysics(_view, this);
             _tracks = new PlayerTracks(_view, this, this);
             _vfx = new PlayerVFX(_view, _hookView);
+
+            _view.Renderer.sharedMaterial.SetFloat(_emissionPower, 7);
 
             _vfx.SetOnSuccessHook(hitPoint =>
             {
@@ -78,7 +83,7 @@ namespace YellowOrphan.Controllers
                 _airControl = true;
                 _physics.TryHook(hitPoint);
             });
-            
+
             _consoleHandler.AddCommand(
                 new DebugCommand("lookSwitch", "Switch look to hold mode", () =>
                 {
@@ -86,7 +91,8 @@ namespace YellowOrphan.Controllers
                     _isLookSwitched = !_isLookSwitched;
                     Debug.Log($"Look is now switched to {(_isLookSwitched ? "toggle" : "auto")}");
                 }));
-            
+
+            CurrentStamina = _view.MaxStamina;
             BindInputs();
         }
 
@@ -121,6 +127,7 @@ namespace YellowOrphan.Controllers
             _inputMap = new InputMap();
             _inputMap.Enable();
 
+            _inputMap.Player.FlashlightToggle.performed += FlashlightToggle;
             _inputMap.Player.Jump.performed += OnJumpPerformed;
             _inputMap.Player.LMB.started += OnLMBStarted;
             _inputMap.Player.LMB.canceled += OnLMBCanceled;
@@ -133,16 +140,17 @@ namespace YellowOrphan.Controllers
             _inputMap.Player.ArrowDown.performed += _ => _consoleHandler.OnDownArrow();
         }
 
-        private void OnRMBStarted(InputAction.CallbackContext obj)
+        private void FlashlightToggle(InputAction.CallbackContext obj)
         {
-            if (_isLookSwitched)
-                IsAiming = true;
+            _eyesHighlighted = !_eyesHighlighted;
+            _view.Renderer.sharedMaterial.SetFloat(_emissionPower, _eyesHighlighted ? -5 : 7);
         }
 
-        private void OnRMBCanceled(InputAction.CallbackContext obj)
+        private void OnJumpPerformed(InputAction.CallbackContext obj)
         {
-            if (_isLookSwitched)
-                IsAiming = false;
+            if (!IsGrounded || IsHooked || _jumpTimeoutDelta > 0f)
+                return;
+            _physics.Velocity = new Vector3(_physics.Velocity.x, _view.JumpHeight, _physics.Velocity.z);
         }
 
         private void OnLMBStarted(InputAction.CallbackContext obj)
@@ -155,7 +163,7 @@ namespace YellowOrphan.Controllers
 
         private void OnLMBCanceled(InputAction.CallbackContext obj)
         {
-            if (_view.IsHookDebug)
+            if (_view.IsHookDebug || !IsHooked)
                 return;
 
             IsHooked = false;
@@ -164,6 +172,19 @@ namespace YellowOrphan.Controllers
             _vfx.SetActive(false);
             _mono.StartCoroutine(
                 _physics.NormalizeRotation(_rotationNormalizationSpeed));
+            _fallStartHeight = _view.transform.position.y;
+        }
+
+        private void OnRMBStarted(InputAction.CallbackContext obj)
+        {
+            if (_isLookSwitched)
+                IsAiming = true;
+        }
+
+        private void OnRMBCanceled(InputAction.CallbackContext obj)
+        {
+            if (_isLookSwitched)
+                IsAiming = false;
         }
 
         private void ReadInput()
@@ -192,13 +213,6 @@ namespace YellowOrphan.Controllers
 
             SpendStamina(-_view.StaminaSprintCost * Time.deltaTime);
             _sprint = true;
-        }
-
-        private void OnJumpPerformed(InputAction.CallbackContext obj)
-        {
-            if (!IsGrounded || IsHooked || _jumpTimeoutDelta > 0f)
-                return;
-            _physics.Velocity = new Vector3(_physics.Velocity.x, _view.JumpHeight, _physics.Velocity.z);
         }
 
         private void SpendStamina(float cost)
@@ -308,16 +322,16 @@ namespace YellowOrphan.Controllers
                                                    ? _view.FrictionMaterial
                                                    : _view.SlipperyMaterial;
 
-                    // if (_fallStartHeight > 0)
-                    // {
-                    //     float fallHeight = Mathf.Abs(_view.transform.position.y - _fallStartHeight) / _playerHeight;
-                    //     if (fallHeight >= _playerHeight)
-                    //     {
-                    //         int damage = (int)fallHeight * _view.FallDamagePerHeight;
-                    //         Debug.Log($"{damage} fall height damage taken");
-                    //     }
-                    //     _fallStartHeight = 0f;
-                    // }
+                    if (_fallStartHeight > 0)
+                    {
+                        float fallHeight = Mathf.Abs(_view.transform.position.y - _fallStartHeight) / _playerHeight;
+                        if (fallHeight >= _playerHeight)
+                        {
+                            int damage = (int)fallHeight * _view.FallDamagePerHeight;
+                            Debug.Log($"{damage} fall height damage taken");
+                        }
+                        _fallStartHeight = 0f;
+                    }
                     break;
                 case false:
                     if (!IsHooked)

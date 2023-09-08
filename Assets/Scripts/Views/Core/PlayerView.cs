@@ -16,7 +16,7 @@ namespace Views
         [field: SerializeField, Range(0f, 10f)] public float StaminaSprintCost { get; private set; }
         [field: SerializeField, Range(0f, 10f)] public float StaminaRecovery { get; private set; }
         [field: SerializeField, Range(1f, 20f)] public float JumpHeight { get; private set; }
-        // [field: SerializeField, Range(1, 100)] public int FallDamagePerHeight { get; private set; }
+        [field: SerializeField, Range(1, 100)] public int FallDamagePerHeight { get; private set; }
         [field: SerializeField, Range(0f, 5f)] public float InAirDrag { get; private set; }
 
         [field: Header("Look"), Space]
@@ -64,8 +64,9 @@ namespace Views
         
         [field: Space]
         [field: Header("Others"), Space]
-        [field: SerializeField] public Animator Animator { get; private set; }
         [field: SerializeField] public Rigidbody Rb { get; private set; }
+        [field: SerializeField] public Animator Animator { get; private set; }
+        [field: SerializeField] public SkinnedMeshRenderer Renderer { get; private set; }
         [field: SerializeField] public PhysicMaterial SlipperyMaterial { get; private set; }
         [field: SerializeField] public PhysicMaterial FrictionMaterial { get; private set; }
         [field: SerializeField] public MeshRenderer LeftLegRenderer { get; private set; }

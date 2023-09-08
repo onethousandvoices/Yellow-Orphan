@@ -7,7 +7,7 @@ using Views;
 using Views.UI;
 using YellowOrphan.Controllers;
 
-public class CoreInjector : LifetimeScope
+public class DIContainer : LifetimeScope
 {
     [Header("Views"), HorizontalLine(color: EColor.Orange)]
     [SerializeField] private PlayerView _playerView;
