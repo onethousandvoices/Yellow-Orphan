@@ -63,7 +63,7 @@ namespace YellowOrphan.Controllers
 
         public void Start()
         {
-            _sphereCollider = _view.GetComponent<SphereCollider>();
+            // _sphereCollider = _view.GetComponent<SphereCollider>();
             _playerHeight = _sphereCollider.radius * 2;
 
             _animator = _view.Animator;
